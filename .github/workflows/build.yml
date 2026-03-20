@@ -81,6 +81,10 @@ jobs:
             exit 1
           }
 
+          if ($CurrentVersion.Revision -eq -1) { 
+            $CurrentVersion = [System.Version]::new($CurrentVersion.Major, $CurrentVersion.Minor, $CurrentVersion.Build, 0)
+          }
+            
           Write-Host "Resolved current version: $CurrentVersion"
           $NextVersion = "$($CurrentVersion.Major).$($CurrentVersion.Minor).$($CurrentVersion.Build + 1).0"
           Write-Host "Next version will be: $NextVersion"
