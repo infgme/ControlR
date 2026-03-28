@@ -64,6 +64,7 @@ graph TD
 - **ControlR.Web.ServiceDefaults** - Shared service configuration and defaults
 - **ControlR.Web.WebSocketRelay** - WebSocket relay service for real-time communication
 - **ControlR.Agent** - Background service/daemon that runs on controlled devices
+- **ControlR.Agent.Installer** - Installer project for the Agent and DesktopClient bundle.
 - **ControlR.DesktopClient** - Cross-platform Avalonia UI desktop application
 - **ControlR.Viewer.Avalonia** - Avalonia UI library for desktop viewer client
 - **ControlR.ApiClient** - API client for communicating with the ControlR server
@@ -75,6 +76,7 @@ graph TD
 - **ControlR.DesktopClient.Mac** - macOS-specific desktop client implementations
 - **ControlR.DesktopClient.Common** - Shared desktop client functionality
 - **ControlR.Agent.Common** - Shared agent functionality across platforms
+- **ControlR.Agent.Shared** - Code shared between the agent and installer.
 
 ### Shared Libraries
 
@@ -269,6 +271,7 @@ In general, services are not registered directly in `Program.cs`. Instead, exten
 ### Testing Strategy
 
 - Use xUnit for unit testing.
+- xUnitv3 projects need to be run with `dotnet run` instead of `dotnet test`.
 - Write unit tests for business logic and services.
 - Maintain test coverage for shared libraries.
 - For server tests, use helpers `Tests\ControlR.Web.Server.Tests\Helpers\` when appropriate.

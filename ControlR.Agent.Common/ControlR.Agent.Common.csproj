@@ -1,21 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
-		<None Remove="Resources\LaunchAgent.plist" />
-		<None Remove="Resources\LaunchDaemon.plist" />
-		<None Remove="Resources\controlr.agent.service" />
-		<None Remove="Resources\controlr.desktop.service" />
-		<None Remove="Resources\ControlR.DesktopClient.zip" />
-		<None Remove="Resources\ControlR.app.zip" />
-	</ItemGroup>
-	<ItemGroup>
-		<EmbeddedResource Include="Resources\LaunchAgent.plist" />
-		<EmbeddedResource Include="Resources\LaunchDaemon.plist" />
-		<EmbeddedResource Include="Resources\controlr.agent.service" />
-		<EmbeddedResource Include="Resources\controlr.desktop.service" />
-		<EmbeddedResource Include="Resources\ControlR.DesktopClient.zip" Condition="Exists('Resources\ControlR.DesktopClient.zip')" />
-		<EmbeddedResource Include="Resources\ControlR.app.zip" Condition="Exists('Resources\ControlR.app.zip')" />
-	</ItemGroup>
-	<ItemGroup>
 		<PackageReference Include="Bitbound.SimpleMessenger" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" />
@@ -31,12 +15,12 @@
 		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\ControlR.Agent.Shared\ControlR.Agent.Shared.csproj" />
 		<ProjectReference Include="..\ControlR.ApiClient\ControlR.ApiClient.csproj" />
 		<ProjectReference Include="..\ControlR.Web.ServiceDefaults\ControlR.Web.ServiceDefaults.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.Ipc\ControlR.Libraries.Ipc.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.Messenger.Extensions\ControlR.Libraries.Messenger.Extensions.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.NativeInterop.Linux\ControlR.Libraries.NativeInterop.Linux.csproj" />
-    <ProjectReference Include="..\Libraries\ControlR.Libraries.NativeInterop.Mac\ControlR.Libraries.NativeInterop.Mac.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.NativeInterop.Windows\ControlR.Libraries.NativeInterop.Windows.csproj" />
     <ProjectReference Include="..\Libraries\ControlR.Libraries.Serilog\ControlR.Libraries.Serilog.csproj" />
     <ProjectReference Include="..\Libraries\ControlR.Libraries.Hosting\ControlR.Libraries.Hosting.csproj" />

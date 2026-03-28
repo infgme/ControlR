@@ -102,6 +102,7 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.3" />
     <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="10.0.3" />
     <PackageVersion Include="System.Drawing.Common" Version="10.0.3" />
+    <PackageVersion Include="System.Net.Http.Json" Version="10.0.3" />
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.3" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
     <PackageVersion Include="Tmds.DBus" Version="0.90.3" />
@@ -111,7 +112,6 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.v3.common" Version="3.2.2" />
-    <PackageVersion Include="xunit.v3.core" Version="3.2.2" />
     <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
     <PackageVersion Include="xunit.v3.runner.console" Version="3.2.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

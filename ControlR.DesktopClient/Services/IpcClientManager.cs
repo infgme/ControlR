@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls.ApplicationLifetimes;
 using Bitbound.SimpleMessenger;
 using ControlR.DesktopClient.Common.Options;

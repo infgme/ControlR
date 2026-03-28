@@ -9,9 +9,9 @@ using ControlR.Libraries.Shared.Primitives;
 
 namespace ControlR.Viewer.Avalonia.Rendering;
 
-public sealed class SkiaBitmapDrawOperation(Rect bounds, Func<ScopedGuard<SKBitmap?>> acquireBitmap) : ICustomDrawOperation
+public sealed class SkiaBitmapDrawOperation(Rect bounds, Func<LockedValueToken<SKBitmap?>> acquireBitmap) : ICustomDrawOperation
 {
-  private readonly Func<ScopedGuard<SKBitmap?>> _bitmapAcquirer = acquireBitmap;
+  private readonly Func<LockedValueToken<SKBitmap?>> _bitmapAcquirer = acquireBitmap;
 
   public Rect Bounds { get; } = bounds;
 

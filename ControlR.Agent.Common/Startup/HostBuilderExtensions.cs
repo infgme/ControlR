@@ -24,6 +24,10 @@ using ControlR.Libraries.Shared.Services.Processes;
 using ControlR.Libraries.Hosting;
 using ControlR.Libraries.Serilog;
 using ControlR.Libraries.Shared.Services.FileSystem;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Services;
+using ControlR.Agent.Shared.Options;
+using ControlR.Agent.Shared.Startup;
 
 namespace ControlR.Agent.Common.Startup;
 
@@ -94,44 +98,37 @@ internal static class HostApplicationBuilderExtensions
       options.BaseUrl = appOptions.ServerUri;
     });
 
-    services.AddSingleton<ISettingsProvider, SettingsProvider>();
+    services.AddSingleton<ILegacyInstallerBridge, LegacyInstallerBridge>();
+    services.AddAgentSharedServices();
     services.AddSingleton<IProcessManager, ProcessManager>();
     services.AddSingleton<ISystemEnvironment>(_ => SystemEnvironment.Instance);
     services.AddSingleton<IFileSystem, FileSystem>();
-    services.AddSingleton<IControlrMutationLock, ControlrMutationLock>();
     services.AddSingleton<IFileManager, FileManager>();
     services.AddTransient<IHubConnectionBuilder, HubConnectionBuilder>();
     services.AddSingleton<ILocalSocketProxy, LocalSocketProxy>();
     services.AddSingleton(WeakReferenceMessenger.Default);
     services.AddSingleton(TimeProvider.System);
     services.AddSingleton<IMemoryProvider, MemoryProvider>();
-    services.AddSingleton<IRegistryAccessor, RegistryAccessor>();
     services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
     services.AddSingleton<IWaiter, Waiter>();
     services.AddSingleton<IRetryer, Retryer>();
     services.AddSingleton<IEmbeddedResourceAccessor, EmbeddedResourceAccessor>();
-    services.AddSingleton<IEmbeddedDesktopClientProvider, EmbeddedDesktopClientProvider>();
     services.AddSingleton<IAgentUpdater, AgentUpdater>();
     services.AddSingleton<ITerminalSessionFactory, TerminalSessionFactory>();
     services.AddSingleton<ITerminalStore, TerminalStore>();
     services.AddSingleton<IIpcServerStore, IpcServerStore>();
     services.AddSingleton<IIpcClientAuthenticator, IpcClientAuthenticator>();
-    services.AddSingleton<IDesktopClientUpdater, DesktopClientUpdater>();
     services.AddSingleton<IAgentHeartbeatTimer, AgentHeartbeatTimer>();
-    services.AddSingleton<IFileSystemPathProvider, FileSystemPathProvider>();
     services.AddControlrIpcServer<AgentRpcService>();
     services.AddStronglyTypedSignalrClient<IAgentHub, IAgentHubClient, AgentHubClient>(ServiceLifetime.Singleton);
 
-    if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+    if (OperatingSystem.IsWindowsVersionAtLeast(8))
     {
       services.AddSingleton<IWin32Interop, Win32Interop>();
       services.AddSingleton<IDesktopSessionProvider, DesktopSessionProviderWindows>();
       services.AddSingleton<IDeviceInfoProvider, DeviceInfoProviderWin>();
       services.AddSingleton<ICpuUtilizationSampler, CpuUtilizationSamplerWin>();
-      services.AddSingleton<IAgentInstaller, AgentInstallerWindows>();
-      services.AddSingleton<IServiceControl, ServiceControlWindows>();
       services.AddSingleton<IPowerControl, PowerControlWindows>();
-      services.AddSingleton<IElevationChecker, ElevationCheckerWin>();
       services.AddSingleton<IIpcClientCredentialsProvider, IpcClientCredentialsProviderWindows>();
       services.AddSingleton<IDesktopClientFileVerifier, DesktopClientFileVerifierWin>();
     }
@@ -140,12 +137,7 @@ internal static class HostApplicationBuilderExtensions
       services.AddSingleton<IDeviceInfoProvider, DeviceInfoProviderLinux>();
       services.AddSingleton<ICpuUtilizationSampler, CpuUtilizationSampler>();
       services.AddSingleton<IDesktopSessionProvider, DesktopSessionProviderLinux>();
-      services.AddSingleton<IAgentInstaller, AgentInstallerLinux>();
-      services.AddSingleton<IServiceControl, ServiceControlLinux>();
-      services.AddSingleton<IHeadlessServerDetector, HeadlessServerDetector>();
-      services.AddSingleton<ILoggedInUserProvider, LoggedInUserProviderLinux>();
-      services.AddSingleton<IPowerControl, PowerControlMac>();
-      services.AddSingleton<IElevationChecker, ElevationCheckerLinux>();
+      services.AddSingleton<IPowerControl, PowerControlLinux>();
       services.AddSingleton<IFileSystemUnix, FileSystemUnix>();
       services.AddSingleton<IIpcClientCredentialsProvider, IpcClientCredentialsProviderLinux>();
       services.AddSingleton<IDesktopClientFileVerifier, DesktopClientFileVerifierLinux>();
@@ -156,10 +148,7 @@ internal static class HostApplicationBuilderExtensions
       services.AddSingleton<IDeviceInfoProvider, DeviceInfoProviderMac>();
       services.AddSingleton<ICpuUtilizationSampler, CpuUtilizationSampler>();
       services.AddSingleton<IDesktopSessionProvider, DesktopSessionProviderMac>();
-      services.AddSingleton<IAgentInstaller, AgentInstallerMac>();
-      services.AddSingleton<IServiceControl, ServiceControlMac>();
       services.AddSingleton<IPowerControl, PowerControlMac>();
-      services.AddSingleton<IElevationChecker, ElevationCheckerMac>();
       services.AddSingleton<IFileSystemUnix, FileSystemUnix>();
       services.AddSingleton<IIpcClientCredentialsProvider, IpcClientCredentialsProviderMac>();
       services.AddSingleton<IDesktopClientFileVerifier, DesktopClientFileVerifierMac>();
@@ -176,12 +165,11 @@ internal static class HostApplicationBuilderExtensions
       services.AddHostedService<IpcServerWatcher>();
       services.AddHostedService<HubConnectionInitializer>();
       services.AddHostedService(x => x.GetRequiredService<IAgentHeartbeatTimer>());
-      services.AddHostedService(s => s.GetRequiredService<IDesktopClientUpdater>());
       services.AddHostedService<MessageHandler>();
       services.AddHostedService<HostLifetimeEventResponder>();
       services.AddHostedService(s => s.GetRequiredService<ICpuUtilizationSampler>());
 
-      if (OperatingSystem.IsWindowsVersionAtLeast(6, 0, 6000))
+      if (OperatingSystem.IsWindowsVersionAtLeast(8))
       {
         services.AddSingleton<IDesktopClientLaunchTracker, DesktopClientLaunchTracker>();
         services.AddHostedService<DesktopClientWatcherWin>();

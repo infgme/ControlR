@@ -15,29 +15,33 @@ Project Board: https://github.com/users/bitbound/projects/1
 
 ## Quick Start: 
 
+### Using Environment Variables
+
 ```
 wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose.yml
-# Follow the instructions at the top of the file to configure secrets.
+# Set environment variables for sensitive values or create a .env file
 sudo docker compose up -d
 ```
 
-You will need to supply sensitive values either via environment variables, Docker Secrets, or hard-coded in the docker-compose file. Choose the method that works best for your setup and security requirements.
+### Using Docker Secrets
+
+```
+wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose-secrets.yml
+# Create secret files and set appropriate permissions (chmod 600)
+sudo docker compose -f docker-compose-secrets.yml up -d
+```
+
+You will need to supply sensitive values either via environment variables or Docker Secrets. Choose the method that works best for your setup and security requirements.
 
 See [Docker Secrets](#docker-secrets) section below for more information on supplying sensitive values via Docker Secrets.
 
-See the comments in the docker-compose file for additional configuration info.
+See the comments in the docker-compose files for additional configuration info.
 
 Afterward, ControlR should be available on port 5120 (by default). Running `curl http://127.0.0.1:5120/health` should return "Healthy."
 
-**IMPORTANT:** Read the below section regarding [reverse proxy configuration](#reverse-proxy-configuration).
+> **Important**: Please read the below section regarding [reverse proxy configuration](#reverse-proxy-configuration).
 
-## Deploy on Railway:
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/controlr?referralCode=yr3zmo&utm_medium=integration&utm_source=template&utm_campaign=generic)
-
-You can deploy ControlR on Railway using the above button.  I've been testing out their service, and so far, I really like it.  The link includes my referral code, `yr3zmo`, which gives me a referral credits on Railway.
-
-Note that SMTP ports are blocked on Free and Hobby plans.  You'll want to disable email sending via the `ControlR_AppOptions__DisableEmailSending` environment variable.
+> **Also important**: Until ControlR reaches v1.0, there may be breaking changes between minor version increments.  Please read the release notes for each version before upgrading and follow any migration steps listed.
 
 ## Reverse Proxy Configuration:
 
@@ -63,21 +67,26 @@ The environment variables for the server can be found in the [docker-compose.yml
 
 ControlR supports using Docker Secrets to supply sensitive configuration values. This is recommended for production deployments where you want to avoid storing sensitive data in environment variables.
 
-### Using Secrets
+### Using Docker Secrets
 
-When Docker Secrets are enabled via `ControlR_AppOptions__EnableDockerSecrets` environment variable, sensitive values are read from secret files mounted into the container rather than from environment variables.  Each secret file name is used as the configuration key, and the value is the file's contents.  These values are merged into the configuration builder, overriding any corresponding environment variables.
+When using Docker Secrets, sensitive values are read from secret files mounted into the container rather than from environment variables. Each secret file name is used as the configuration key, and the value is the file's contents.
 
-The docker-compose file demonstrates both methods. You can choose to use Secrets, environment variables, or mix-and-match based on your needs.
+**To use Docker Secrets:**
+1. Download the secrets configuration file: `wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose-secrets.yml`
+2. Download the example secret files: `wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/example-secrets/*`
+3. Set appropriate permissions on secret files: `chmod 600 example-secrets/*`
+4. Update the secret file contents with your actual values
+5. Run: `sudo docker compose -f docker-compose-secrets.yml up -d`
 
-**To use Secrets:**
-1. Ensure the secrets folder exists and contains files for which you want to supply secrets (e.g., `postgres_user`, `postgres_password`, etc.).
-2. Set the folder and file permissions to restrict access (e.g., `chmod 700 secrets` and `chmod 600 secrets/*`).
-3. Remove all lines in the docker-compose file with the comment "Remove if using secrets".
-4. Uncomment the `_FILE` environment variables for the Postgres service if needed.
+### Using Environment Variables
 
-**To use environment variables instead:**
-1. Remove all lines in the docker-compose file with the comment "Remove if using env".
-2. Make sure the top-level variables (e.g., `ControlR_POSTGRES_USER`) are supplied by the host via environment variables or `.env` file.
+For simpler setups or development environments, you can use environment variables instead of Docker Secrets.
+
+**To use environment variables:**
+1. Download the environment variables configuration file: `wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose.yml`
+2. Set environment variables for all sensitive values (e.g., `ControlR_POSTGRES_USER`, `ControlR_POSTGRES_PASSWORD`)
+3. Or create a `.env` file with the required variables
+4. Run: `sudo docker compose up -d`
 
 ### ControlR-Specific Secrets
 
@@ -93,7 +102,7 @@ This means you can supply values like:
 - `AppOptions__SmtpPassword`
 - `KeyProtectionOptions__CertificatePassword`
 
-by creating corresponding secret files in the `secrets/` directory.
+by creating corresponding secret files.
 
 The file name on the host can be anything, but the file name inside the container must match the configuration key it is meant to override.
 

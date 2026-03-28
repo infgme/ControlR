@@ -278,7 +278,7 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
   {
     try
     {
-      return ApplicationServices.AXIsProcessTrusted();
+      return ApplicationServicesInterop.AXIsProcessTrusted();
     }
     catch (Exception ex)
     {
@@ -291,7 +291,7 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
   {
     try
     {
-      return CoreGraphics.CGPreflightScreenCaptureAccess();
+      return CoreGraphicsInterop.CGPreflightScreenCaptureAccess();
     }
     catch (Exception ex)
     {
@@ -373,9 +373,9 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
 
   public bool RequestAccessibilityPermission()
   {
-    var optionsDict = Foundation.CreateAccessibilityPromptDictionary();
-    var result = ApplicationServices.AXIsProcessTrustedWithOptions(optionsDict);
-    Foundation.CFRelease(optionsDict);
+    var optionsDict = FoundationInterop.CreateAccessibilityPromptDictionary();
+    var result = ApplicationServicesInterop.AXIsProcessTrustedWithOptions(optionsDict);
+    FoundationInterop.CFRelease(optionsDict);
     if (!result)
     {
       _logger.LogInformation("Accessibility permission prompt requested.");
@@ -385,7 +385,7 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
 
   public bool RequestScreenCapturePermission()
   {
-    var result = CoreGraphics.CGRequestScreenCaptureAccess();
+    var result = CoreGraphicsInterop.CGRequestScreenCaptureAccess();
     if (!result)
     {
       _logger.LogInformation("Screen capture permission prompt requested.");
@@ -470,9 +470,9 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
     try
     {
       // Create CFString for assertion type
-      assertionType = Foundation.CFStringCreateWithCString(
+      assertionType = FoundationInterop.CFStringCreateWithCString(
         nint.Zero,
-        IOKit.kIOPMAssertionTypePreventUserIdleDisplaySleep,
+        IOKitInterop.kIOPMAssertionTypePreventUserIdleDisplaySleep,
         0x08000100); // kCFStringEncodingUTF8
 
       if (assertionType == nint.Zero)
@@ -481,7 +481,7 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
       }
 
       // Create CFString for reason
-      reasonString = Foundation.CFStringCreateWithCString(
+      reasonString = FoundationInterop.CFStringCreateWithCString(
         nint.Zero,
         "ControlR remote control wake",
         0x08000100); // kCFStringEncodingUTF8
@@ -492,13 +492,13 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
       }
 
       // Create power assertion to wake the screen
-      var result = IOKit.IOPMAssertionCreateWithName(
+      var result = IOKitInterop.IOPMAssertionCreateWithName(
         assertionType,
-        IOKit.kIOPMAssertionLevelOn,
+        IOKitInterop.kIOPMAssertionLevelOn,
         reasonString,
         out var assertionId);
 
-      if (result != IOKit.kIOReturnSuccess)
+      if (result != IOKitInterop.kIOReturnSuccess)
       {
         return Result.Fail($"Failed to create power assertion. IOReturn: {result}");
       }
@@ -508,8 +508,8 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
 
       // Release the assertion immediately after creating it
       // This is enough to wake the screen without keeping it awake permanently
-      var releaseResult = IOKit.IOPMAssertionRelease(assertionId);
-      if (releaseResult != IOKit.kIOReturnSuccess)
+      var releaseResult = IOKitInterop.IOPMAssertionRelease(assertionId);
+      if (releaseResult != IOKitInterop.kIOReturnSuccess)
       {
         _logger.LogWarning("Failed to release power assertion {AssertionID}. IOReturn: {Result}",
           assertionId, releaseResult);
@@ -527,9 +527,9 @@ public class MacInterop(ILogger<MacInterop> logger) : IMacInterop
     {
       // Clean up CFString objects
       if (assertionType != nint.Zero)
-        Foundation.CFRelease(assertionType);
+        FoundationInterop.CFRelease(assertionType);
       if (reasonString != nint.Zero)
-        Foundation.CFRelease(reasonString);
+        FoundationInterop.CFRelease(reasonString);
     }
   }
 

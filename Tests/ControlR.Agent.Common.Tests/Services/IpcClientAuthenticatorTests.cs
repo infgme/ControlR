@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using ControlR.Libraries.Api.Contracts.Dtos.IpcDtos;
+using ControlR.Agent.Shared.Services;
 
 namespace ControlR.Agent.Common.Tests.Services;
 

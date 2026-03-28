@@ -13,10 +13,48 @@
       "console": "internalConsole"
     },
     {
+      "name": "DesktopClient (dotnet launch)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/ControlR.DesktopClient/ControlR.DesktopClient.csproj",
+        "--launch-profile",
+        "Run"
+      ],
+      "osx": {
+        "args": [
+          "run",
+          "--project",
+          "${workspaceFolder}/ControlR.DesktopClient/ControlR.DesktopClient.csproj",
+          "--framework",
+          "net10.0-macos",
+          "--runtime",
+          "osx-arm64",
+          "--launch-profile",
+          "Run"
+        ]
+      },
+      "cwd": "${workspaceFolder}/ControlR.DesktopClient",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
       "name": "DesktopClient (Debug)",
       "type": "coreclr",
       "request": "launch",
       "program": "${workspaceFolder}/ControlR.DesktopClient/bin/Debug/net10.0/ControlR.DesktopClient.dll",
+      "osx": {
+        "program": "${workspaceFolder}/ControlR.DesktopClient/bin/Debug/net10.0-macos/osx-arm64/ControlR.DesktopClient.app/Contents/MacOS/ControlR.DesktopClient"
+      },
+      "linux": {
+        "program": "${workspaceFolder}/ControlR.DesktopClient/bin/Debug/net10.0/ControlR.DesktopClient.dll",
+      },
+      "windows": {
+        "program": "${workspaceFolder}/ControlR.DesktopClient/bin/Debug/net10.0-windows10.0.22000.0/ControlR.DesktopClient.dll"
+      },
       "args": [],
       "cwd": "${workspaceFolder}/ControlR.DesktopClient",
       "launchSettingsProfile": "Run",
@@ -78,6 +116,20 @@
         "--launch-profile",
         "Run"
       ],
+      "osx": {
+        "args": [
+          "watch",
+          "run",
+          "--project",
+          "${workspaceFolder}/ControlR.DesktopClient/ControlR.DesktopClient.csproj",
+          "--framework",
+          "net10.0-macos",
+          "--runtime",
+          "osx-arm64",
+          "--launch-profile",
+          "Run"
+        ]
+      },
       "cwd": "${workspaceFolder}/ControlR.DesktopClient",
       "stopAtEntry": false,
       "console": "internalConsole",

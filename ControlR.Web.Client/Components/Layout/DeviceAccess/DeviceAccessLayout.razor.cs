@@ -296,6 +296,10 @@ public partial class DeviceAccessLayout
   {
     try
     {
+      TerminalState.Value.CommandInputText = string.Empty;
+      TerminalState.Value.InputHistory.Clear();
+      TerminalState.Value.Output.Clear();
+      
       if (!ViewerHub.Value.IsConnected || TerminalState.Value.Id == Guid.Empty)
       {
         return;

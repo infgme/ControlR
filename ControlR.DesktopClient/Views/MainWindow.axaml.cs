@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using ControlR.DesktopClient.ViewModels;
 
 namespace ControlR.DesktopClient.Views;
 

@@ -1,5 +1,3 @@
-using ControlR.DesktopClient.Common;
-
 namespace ControlR.DesktopClient.Services;
 
 public class UserInteractionService(IDialogProvider dialogProvider) : IUserInteractionService

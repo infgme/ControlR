@@ -1,12 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <TargetFrameworks>$(WindowsTargetFramework);$(MacTargetFramework);$(LinuxTargetFramework)</TargetFrameworks>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <PackageIcon>appicon.png</PackageIcon>
-    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsWindows)' == 'true'">
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsMacOS)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <OutputType>Exe</OutputType>
+    <SupportedOSPlatformVersion>12.0</SupportedOSPlatformVersion>
+    <CreatePackage>false</CreatePackage>
+    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <RuntimeIdentifiers>osx-x64;osx-arm64</RuntimeIdentifiers>
+    <PublishTrimmed>true</PublishTrimmed>
+    <MtouchLink>None</MtouchLink>
+    <TrimMode>none</TrimMode>
+    <LinkMode>none</LinkMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsLinux)' == 'true'">
+    <OutputType>Exe</OutputType>
+    <IsLinux>true</IsLinux>
+    <IsUnix>true</IsUnix>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -37,23 +60,14 @@
     <ProjectReference Include="..\Libraries\ControlR.Libraries.Branding\ControlR.Libraries.Branding.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$(DefineConstants.Contains('IS_WINDOWS'))">
+  <ItemGroup Condition="'$(IsWindows)' == 'true'">
     <ProjectReference Include="..\ControlR.DesktopClient.Windows\ControlR.DesktopClient.Windows.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="$(DefineConstants.Contains('IS_MACOS'))">
+  <ItemGroup Condition="'$(IsMacOS)' == 'true'">
     <ProjectReference Include="..\ControlR.DesktopClient.Mac\ControlR.DesktopClient.Mac.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="$(DefineConstants.Contains('IS_LINUX'))">
+  <ItemGroup Condition="'$(IsLinux)' == 'true'">
     <ProjectReference Include="..\ControlR.DesktopClient.Linux\ControlR.DesktopClient.Linux.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Views\Linux\PermissionsViewWayland.axaml.cs">
-      <DependentUpon>PermissionsViewWayland.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Views\Mac\PermissionsViewMac.axaml.cs">
-      <DependentUpon>PermissionsViewMac.axaml</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Update="Assets\appicon.png">

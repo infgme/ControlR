@@ -1,5 +1,5 @@
 using ControlR.Libraries.Shared.Services;
-using ControlR.Agent.Common.Services;
+using ControlR.Agent.Shared.Services;
 using System.Reflection;
 using ControlR.Libraries.Shared.Helpers;
 
@@ -8,7 +8,7 @@ namespace ControlR.Agent.Common.Tests;
 public class ResourceExtractionTests
 {
   private readonly EmbeddedResourceAccessor _accessor = new();
-  private readonly Assembly _assembly = typeof(AgentUpdater).Assembly;
+  private readonly Assembly _assembly = typeof(FileSystemPathProvider).Assembly;
 
   [Fact]
   public async Task GetResourceAsString_ForLaunchAgent_ReturnsExpectedString()
@@ -16,7 +16,7 @@ public class ResourceExtractionTests
     // Arrange
     var solutionDirResult = IoHelper.GetSolutionDir(Directory.GetCurrentDirectory());
     Assert.True(solutionDirResult.IsSuccess);
-    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Common", "Resources", "LaunchAgent.plist");
+    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Shared", "Resources", "LaunchAgent.plist");
     var expected = await File.ReadAllTextAsync(resourcePath, TestContext.Current.CancellationToken);
 
     // Act
@@ -33,7 +33,7 @@ public class ResourceExtractionTests
     var solutionDirResult = IoHelper.GetSolutionDir(Directory.GetCurrentDirectory());
     Assert.True(solutionDirResult.IsSuccess);
     var resourcePath =
-      Path.Combine(solutionDirResult.Value, "ControlR.Agent.Common", "Resources", "LaunchDaemon.plist");
+      Path.Combine(solutionDirResult.Value, "ControlR.Agent.Shared", "Resources", "LaunchDaemon.plist");
     var expected = await File.ReadAllTextAsync(resourcePath, TestContext.Current.CancellationToken);
     // Act
     var actual = await _accessor.GetResourceAsString(_assembly, "LaunchDaemon.plist");
@@ -47,13 +47,13 @@ public class ResourceExtractionTests
     // Arrange
     var solutionDirResult = IoHelper.GetSolutionDir(Directory.GetCurrentDirectory());
     Assert.True(solutionDirResult.IsSuccess);
-    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Common", "Resources",
+    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Shared", "Resources",
       "controlr.agent.service");
     var expected = await File.ReadAllTextAsync(resourcePath, TestContext.Current.CancellationToken);
 
     // Act
     var actual =
-      await _accessor.GetResourceAsString(_assembly, "ControlR.Agent.Common.Resources.controlr.agent.service");
+      await _accessor.GetResourceAsString(_assembly, "controlr.agent.service");
 
     // Assert
     Assert.Equal(expected, actual);
@@ -65,12 +65,12 @@ public class ResourceExtractionTests
     // Arrange
     var solutionDirResult = IoHelper.GetSolutionDir(Directory.GetCurrentDirectory());
     Assert.True(solutionDirResult.IsSuccess);
-    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Common", "Resources", "controlr.desktop.service");
+    var resourcePath = Path.Combine(solutionDirResult.Value, "ControlR.Agent.Shared", "Resources", "controlr.desktop.service");
     var expected = await File.ReadAllTextAsync(resourcePath, TestContext.Current.CancellationToken);
 
     // Act
     var actual =
-      await _accessor.GetResourceAsString(_assembly, "ControlR.Agent.Common.Resources.controlr.desktop.service");
+      await _accessor.GetResourceAsString(_assembly, "controlr.desktop.service");
 
     // Assert
     Assert.Equal(expected, actual);

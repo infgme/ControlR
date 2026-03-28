@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using ControlR.DesktopClient.ViewModels;
 
 namespace ControlR.DesktopClient;
 

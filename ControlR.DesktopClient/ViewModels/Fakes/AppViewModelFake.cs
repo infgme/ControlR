@@ -1,6 +1,4 @@
-﻿using System.Windows.Input;
-
-namespace ControlR.DesktopClient.ViewModels.Fakes;
+﻿namespace ControlR.DesktopClient.ViewModels.Fakes;
 public class AppViewModelFake : IAppViewModel
 {
   public IRelayCommand ExitApplicationCommand { get; } = new RelayCommand(() => { });

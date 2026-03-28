@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using ControlR.Libraries.Shared.Services.Processes;
 using ControlR.Libraries.Shared.Services.FileSystem;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Services;
 
 namespace ControlR.Agent.Common.Services;
 
@@ -26,7 +28,7 @@ internal class AgentHubClient(
   ITerminalStore terminalStore,
   IDesktopSessionProvider desktopSessionProvider,
   IIpcServerStore ipcServerStore,
-  IDesktopClientUpdater streamerUpdater,
+  IDesktopClientFileVerifier desktopClientFileVerifier,
   IHostApplicationLifetime appLifetime,
   ISettingsProvider settings,
   IProcessManager processManager,
@@ -34,6 +36,7 @@ internal class AgentHubClient(
   ILocalSocketProxy localProxy,
   IFileManager fileManager,
   IFileSystem fileSystem,
+  IFileSystemPathProvider fileSystemPathProvider,
   IDeviceInfoProvider deviceDataGenerator,
   IAgentUpdater agentUpdater,
   IWakeOnLanService wakeOnLan,
@@ -42,11 +45,12 @@ internal class AgentHubClient(
 {
   private readonly IAgentUpdater _agentUpdater = agentUpdater;
   private readonly IHostApplicationLifetime _appLifetime = appLifetime;
-  private readonly IDesktopClientUpdater _desktopClientUpdater = streamerUpdater;
+  private readonly IDesktopClientFileVerifier _desktopClientFileVerifier = desktopClientFileVerifier;
   private readonly IDesktopSessionProvider _desktopSessionProvider = desktopSessionProvider;
   private readonly IDeviceInfoProvider _deviceDataGenerator = deviceDataGenerator;
   private readonly IFileManager _fileManager = fileManager;
   private readonly IFileSystem _fileSystem = fileSystem;
+  private readonly IFileSystemPathProvider _fileSystemPathProvider = fileSystemPathProvider;
   private readonly IAgentHeartbeatTimer _heartbeatTimer = heartbeatTimer;
   private readonly IHubConnection<IAgentHub> _hubConnection = hubConnection;
   private readonly IIpcServerStore _ipcServerStore = ipcServerStore;
@@ -137,16 +141,13 @@ internal class AgentHubClient(
   {
     try
     {
-      if (!_settings.DisableAutoUpdate)
+      var installationVerificationResult = VerifyDesktopClientInstallation();
+      if (!installationVerificationResult.IsSuccess)
       {
-        var versionResult = await _desktopClientUpdater.EnsureLatestVersion(
-          acquireGlobalLock: true,
-          _appLifetime.ApplicationStopping);
-
-        if (!versionResult)
-        {
-          return HubResult.Fail("Failed to ensure latest desktop client version is installed.");
-        }
+        _logger.LogWarning(
+          "Remote control session rejected because the installed desktop client is invalid. Reason: {Reason}",
+          installationVerificationResult.Reason);
+        return HubResult.Fail(installationVerificationResult.Reason ?? "Desktop client is not installed.");
       }
 
       _logger.LogInformation(
@@ -837,5 +838,17 @@ internal class AgentHubClient(
         _logger.LogError(ex, "Error deleting temporary file: {FilePath}", fileSystemPath);
       }
     }
+  }
+
+  private Result VerifyDesktopClientInstallation()
+  {
+    var desktopExecutablePath = _fileSystemPathProvider.GetDesktopExecutablePath();
+
+    if (!_fileSystem.FileExists(desktopExecutablePath))
+    {
+      return Result.Fail($"Desktop client executable was not found at '{desktopExecutablePath}'.");
+    }
+
+    return _desktopClientFileVerifier.VerifyFile(desktopExecutablePath);
   }
 }

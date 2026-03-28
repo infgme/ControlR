@@ -53,36 +53,36 @@ public partial class Deploy
   {
     get
     {
-      var downloadUri = new Uri(GetServerUri(), "/downloads/linux-x64/ControlR.Agent");
+      var downloadUri = new Uri(GetServerUri(), AppConstants.GetInstallerDownloadPath(RuntimeId.LinuxX64));
       return
-        $"sudo rm -f /tmp/ControlR.Agent && " +
-        $"sudo wget -O /tmp/ControlR.Agent {downloadUri} && " +
-        $"sudo chmod +x /tmp/ControlR.Agent && " +
-        $"sudo /tmp/ControlR.Agent install {GetCommonArgs()}";
+        $"sudo rm -f /tmp/ControlR.Agent.Installer && " +
+        $"sudo curl -o /tmp/ControlR.Agent.Installer {downloadUri} && " +
+        $"sudo chmod +x /tmp/ControlR.Agent.Installer && " +
+        $"sudo /tmp/ControlR.Agent.Installer install {GetCommonArgs()}";
     }
   }
   private string MacArm64DeployScript
   {
     get
     {
-      var downloadUri = new Uri(GetServerUri(), "/downloads/osx-arm64/ControlR.Agent");
+      var downloadUri = new Uri(GetServerUri(), AppConstants.GetInstallerDownloadPath(RuntimeId.MacOsArm64));
       return
-        $"sudo rm -f /tmp/ControlR.Agent && " +
-        $"sudo curl -o /tmp/ControlR.Agent {downloadUri} && " +
-        $"sudo chmod +x /tmp/ControlR.Agent && " +
-        $"sudo /tmp/ControlR.Agent install {GetCommonArgs()}";
+        $"sudo rm -f /tmp/ControlR.Agent.Installer && " +
+        $"sudo curl -o /tmp/ControlR.Agent.Installer {downloadUri} && " +
+        $"sudo chmod +x /tmp/ControlR.Agent.Installer && " +
+        $"sudo /tmp/ControlR.Agent.Installer install {GetCommonArgs()}";
     }
   }
   private string MacX64DeployScript
   {
     get
     {
-      var downloadUri = new Uri(GetServerUri(), "/downloads/osx-x64/ControlR.Agent");
+      var downloadUri = new Uri(GetServerUri(), AppConstants.GetInstallerDownloadPath(RuntimeId.MacOsX64));
       return
-        $"sudo rm -f /tmp/ControlR.Agent && " +
-        $"sudo curl -o /tmp/ControlR.Agent {downloadUri} && " +
-        $"sudo chmod +x /tmp/ControlR.Agent && " +
-        $"sudo /tmp/ControlR.Agent install {GetCommonArgs()}";
+        $"sudo rm -f /tmp/ControlR.Agent.Installer && " +
+        $"sudo curl -o /tmp/ControlR.Agent.Installer {downloadUri} && " +
+        $"sudo chmod +x /tmp/ControlR.Agent.Installer && " +
+        $"sudo /tmp/ControlR.Agent.Installer install {GetCommonArgs()}";
     }
   }
   
@@ -95,20 +95,20 @@ public partial class Deploy
   {
     get
     {
-      var downloadUri = new Uri(GetServerUri(), "/downloads/win-x64/ControlR.Agent.exe");
+      var downloadUri = new Uri(GetServerUri(), AppConstants.GetInstallerDownloadPath(RuntimeId.WinX64));
       return "$ProgressPreference = 'SilentlyContinue'; " +
-             $"Invoke-WebRequest -Uri \"{downloadUri}\" -OutFile \"$env:TEMP/ControlR.Agent.exe\" -UseBasicParsing; " +
-             $"Start-Process -FilePath \"$env:TEMP/ControlR.Agent.exe\" -ArgumentList \"install {GetCommonArgs()}\" -Verb RunAs;";
+             $"Invoke-WebRequest -Uri \"{downloadUri}\" -OutFile \"$env:TEMP/ControlR.Agent.Installer.exe\" -UseBasicParsing; " +
+             $"Start-Process -FilePath \"$env:TEMP/ControlR.Agent.Installer.exe\" -ArgumentList \"install {GetCommonArgs()}\" -Verb RunAs;";
     }
   }
   private string WindowsX86DeployScript
   {
     get
     {
-      var downloadUri = new Uri(GetServerUri(), "/downloads/win-x86/ControlR.Agent.exe");
+      var downloadUri = new Uri(GetServerUri(), AppConstants.GetInstallerDownloadPath(RuntimeId.WinX86));
       return "$ProgressPreference = 'SilentlyContinue'; " +
-             $"Invoke-WebRequest -Uri \"{downloadUri}\" -OutFile \"$env:TEMP/ControlR.Agent.exe\" -UseBasicParsing; " +
-             $"Start-Process -FilePath \"$env:TEMP/ControlR.Agent.exe\" -ArgumentList \"install {GetCommonArgs()}\" -Verb RunAs;";
+             $"Invoke-WebRequest -Uri \"{downloadUri}\" -OutFile \"$env:TEMP/ControlR.Agent.Installer.exe\" -UseBasicParsing; " +
+             $"Start-Process -FilePath \"$env:TEMP/ControlR.Agent.Installer.exe\" -ArgumentList \"install {GetCommonArgs()}\" -Verb RunAs;";
     }
   }
 

@@ -1,6 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using ControlR.DesktopClient.Services;
-using ControlR.Libraries.Avalonia.Theming;
 using ControlR.Libraries.Shared.Primitives;
 
 namespace ControlR.DesktopClient.ViewModels;

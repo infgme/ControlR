@@ -42,29 +42,29 @@ internal class CursorWatcherMac(
 
   private CursorSnapshot? CaptureCursorSnapshot(double scaleFactor)
   {
-    using var autoreleasePool = AppKit.CreateAutoreleasePool();
+    using var autoreleasePool = AppKitInterop.CreateAutoreleasePool();
 
-    var cursor = AppKit.GetCurrentCursor();
+    var cursor = AppKitInterop.GetCurrentCursor();
     if (cursor == nint.Zero)
     {
       return null;
     }
 
-    var nsImage = AppKit.GetCursorImage(cursor);
+    var nsImage = AppKitInterop.GetCursorImage(cursor);
     if (nsImage == nint.Zero)
     {
       Logger.LogDebug("Failed to get cursor image");
       return null;
     }
 
-    var cgImageRef = AppKit.GetNSImageCGImage(nsImage);
+    var cgImageRef = AppKitInterop.GetNSImageCGImage(nsImage);
     if (cgImageRef == nint.Zero)
     {
       Logger.LogDebug("Failed to convert NSImage to CGImage");
       return null;
     }
 
-    var (hotspotX, hotspotY) = AppKit.GetCursorHotspot(cursor);
+    var (hotspotX, hotspotY) = AppKitInterop.GetCursorHotspot(cursor);
     var cursorBase64 = ConvertCursorToPngBase64(cgImageRef, scaleFactor);
     if (cursorBase64 is null)
     {
@@ -159,8 +159,8 @@ internal class CursorWatcherMac(
 
   private nint GetCurrentCursorPointer()
   {
-    using var autoreleasePool = AppKit.CreateAutoreleasePool();
-    return AppKit.GetCurrentCursor();
+    using var autoreleasePool = AppKitInterop.CreateAutoreleasePool();
+    return AppKitInterop.GetCurrentCursor();
   }
 
   private SKBitmap? NormalizeCursorBitmap(SKBitmap source, double scaleFactor)
@@ -205,20 +205,20 @@ internal class CursorWatcherMac(
         return 1.0;
       }
 
-      var cgEventRef = CoreGraphics.CGEventCreate(nint.Zero);
+      var cgEventRef = CoreGraphicsInterop.CGEventCreate(nint.Zero);
       if (cgEventRef == nint.Zero)
       {
         return 1.0;
       }
 
       using var cgEventDisposer = new CallbackDisposable(
-        () => CoreGraphics.CFRelease(cgEventRef));
+        () => CoreGraphicsInterop.CFRelease(cgEventRef));
 
-      var location = CoreGraphics.CGEventGetLocation(cgEventRef);
+      var location = CoreGraphicsInterop.CGEventGetLocation(cgEventRef);
 
       var displayIds = new uint[1];
-      var rect = new CoreGraphics.CGRect(location.X, location.Y, 1, 1);
-      var result = CoreGraphics.CGGetDisplaysWithRect(rect, 1, displayIds, out var matchingDisplayCount);
+      var rect = new CoreGraphicsInterop.CGRect(location.X, location.Y, 1, 1);
+      var result = CoreGraphicsInterop.CGGetDisplaysWithRect(rect, 1, displayIds, out var matchingDisplayCount);
       if (result == 0 && matchingDisplayCount > 0)
       {
         var displayIdString = displayIds[0].ToString();

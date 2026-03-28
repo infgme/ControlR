@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using ControlR.DesktopClient.ViewModels;
 
 namespace ControlR.DesktopClient.Models;
 

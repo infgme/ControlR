@@ -1,7 +1,6 @@
 using System.Runtime.Versioning;
 using ControlR.Agent.Common.Interfaces;
 using ControlR.Libraries.Ipc;
-using ControlR.Libraries.NativeInterop.Mac;
 
 namespace ControlR.Agent.Common.Services.Mac;
 

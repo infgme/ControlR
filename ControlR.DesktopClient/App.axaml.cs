@@ -9,7 +9,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using ControlR.DesktopClient.Common.Startup;
 using ControlR.DesktopClient.Services;
-using ControlR.DesktopClient.ViewModels;
 using ControlR.Libraries.Shared.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

@@ -63,8 +63,8 @@ internal class DisplayManagerMac(ILogger<DisplayManagerMac> logger, IDisplayEnum
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error getting virtual layout screen bounds.");
-        var mainDisplayId = CoreGraphics.CGMainDisplayID();
-        var bounds = CoreGraphics.CGDisplayBounds(mainDisplayId);
+        var mainDisplayId = CoreGraphicsInterop.CGMainDisplayID();
+        var bounds = CoreGraphicsInterop.CGDisplayBounds(mainDisplayId);
         return new Rectangle((int)bounds.X, (int)bounds.Y, (int)bounds.Width, (int)bounds.Height);
       }
     }

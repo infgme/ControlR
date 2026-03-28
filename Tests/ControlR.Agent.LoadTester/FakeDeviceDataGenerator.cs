@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using ControlR.Agent.Common.Interfaces;
 using ControlR.Agent.Common.Models;
+using ControlR.Agent.Shared.Interfaces;
 using ControlR.Libraries.Api.Contracts.Dtos.Devices;
 using ControlR.Libraries.Api.Contracts.Dtos.HubDtos;
 using ControlR.Libraries.Shared.Extensions;
@@ -10,7 +10,7 @@ using ControlR.Libraries.Shared.Services;
 
 namespace ControlR.Agent.LoadTester;
 
-[SupportedOSPlatform("windows6.0.6000")]
+[SupportedOSPlatform("windows8.0")]
 internal class FakeDeviceDataGenerator(
   int deviceNumber,
   Guid tenantId,

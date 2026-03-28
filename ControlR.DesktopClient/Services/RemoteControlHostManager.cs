@@ -1,14 +1,11 @@
-using ControlR.DesktopClient.Common;
-using ControlR.DesktopClient.Common.Options;
 using ControlR.DesktopClient.Models;
-using ControlR.Libraries.Shared.Collections;
 using ControlR.Libraries.Api.Contracts.Dtos.IpcDtos;
 using ControlR.Libraries.Shared.Primitives;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
+using ControlR.Libraries.Serilog;
+using ControlR.Libraries.Shared.Services;
 
 namespace ControlR.DesktopClient.Services;
 
@@ -28,28 +25,25 @@ public interface IRemoteControlHostManager
 public class RemoteControlHostManager : IRemoteControlHostManager
 {
   private readonly IAppLifetimeNotifier _appLifetimeNotifier;
-  private readonly IOptionsMonitor<DesktopClientOptions> _desktopClientOptions;
-  private readonly IIpcClientAccessor _ipcClientAccessor;
+  private readonly IRemoteControlHostBuilderFactory _hostBuilderFactory;
   private readonly ILogger<RemoteControlHostManager> _logger;
   private readonly HandlerCollection<ICollection<RemoteControlSession>> _sessionChangedHandlers;
   private readonly ConcurrentDictionary<Guid, RemoteControlSession> _sessions = new();
+  private readonly ISystemEnvironment _systemEnvironment;
   private readonly TimeProvider _timeProvider;
-  private readonly IUserInteractionService _userInteractionService;
 
   public RemoteControlHostManager(
     TimeProvider timeProvider,
-    IUserInteractionService userInteractionService,
-    IIpcClientAccessor ipcClientAccessor,
     IAppLifetimeNotifier appLifetimeNotifier,
-    IOptionsMonitor<DesktopClientOptions> desktopClientOptions,
+    IRemoteControlHostBuilderFactory hostBuilderFactory,
+    ISystemEnvironment systemEnvironment,
     ILogger<RemoteControlHostManager> logger)
   {
     _appLifetimeNotifier = appLifetimeNotifier;
-    _desktopClientOptions = desktopClientOptions;
-    _ipcClientAccessor = ipcClientAccessor;
+    _hostBuilderFactory = hostBuilderFactory;
     _logger = logger;
     _timeProvider = timeProvider;
-    _userInteractionService = userInteractionService;
+    _systemEnvironment = systemEnvironment;
 
     _sessionChangedHandlers = new(exceptionHandler: ex =>
     {
@@ -80,7 +74,19 @@ public class RemoteControlHostManager : IRemoteControlHostManager
         requestDto.TargetProcessId,
         requestDto.ViewerName);
 
-      var builder = CreateRemoteControlHostBuilder(requestDto);
+      var builder = _hostBuilderFactory.CreateHostBuilder(requestDto);
+
+      builder.BootstrapSerilog(
+        logFilePath: PathConstants.GetLogsPath(requestDto.DataFolder),
+        logRetention: TimeSpan.FromDays(7),
+        config =>
+        {
+          if (_systemEnvironment.IsDebug)
+          {
+            config.MinimumLevel.Debug();
+          }
+        });
+
       var app = builder.Build();
       var session = CreateRemoteControlSession(requestDto, app);
       RegisterHostLifetimeHandlers(app, requestDto);
@@ -111,7 +117,7 @@ public class RemoteControlHostManager : IRemoteControlHostManager
       });
       await Task.WhenAll(stopTasks);
       _sessions.Clear();
-      
+
     }
     catch (Exception ex)
     {
@@ -135,47 +141,6 @@ public class RemoteControlHostManager : IRemoteControlHostManager
   public bool TryGetSession(Guid sessionId, [NotNullWhen(true)] out RemoteControlSession? session)
   {
     return _sessions.TryGetValue(sessionId, out session);
-  }
-
-  internal HostApplicationBuilder CreateRemoteControlHostBuilder(RemoteControlRequestIpcDto requestDto)
-  {
-    var builder = Host.CreateApplicationBuilder();
-
-    builder.AddCommonDesktopServices(
-       appBuilder =>
-      {
-        appBuilder.Services
-          .AddSingleton<IToaster, Toaster>()
-          .AddSingleton<IUiThread, UiThread>()
-          .AddSingleton(_userInteractionService)
-          .AddSingleton(_ipcClientAccessor);
-      },
-      options =>
-      {
-        options.SessionId = requestDto.SessionId;
-        options.NotifyUser = requestDto.NotifyUserOnSessionStart;
-        options.RequireConsent = requestDto.RequireConsent;
-        options.ViewerName = requestDto.ViewerName;
-        options.ViewerConnectionId = requestDto.ViewerConnectionId;
-        options.WebSocketUri = requestDto.WebsocketUri;
-      },
-      options =>
-      {
-        options.InstanceId = _desktopClientOptions.CurrentValue.InstanceId;
-      });
-
-#if IS_WINDOWS
-      builder.AddWindowsDesktopServices(requestDto.DataFolder);
-#elif IS_MACOS
-      builder.AddMacDesktopServices(requestDto.DataFolder);
-#elif IS_LINUX
-      builder.AddLinuxDesktopServices(requestDto.DataFolder);
-      builder.Services.AddSingleton<IClipboardManager, ClipboardManagerAvalonia>();
-#else
-      throw new PlatformNotSupportedException("This platform is not supported. Supported platforms are Windows, MacOS, and Linux.");
-#endif
-
-    return builder;
   }
 
   private RemoteControlSession CreateRemoteControlSession(

@@ -1,4 +1,6 @@
 using System.IO.Compression;
+using ControlR.Agent.Shared.Constants;
+using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Api.Contracts.Dtos.ServerApi;
 using ControlR.Libraries.Shared.Services.FileSystem;
 
@@ -217,6 +219,9 @@ internal class FileManager(
     {
       var agentLogs = GetAgentLogs();
       logGroups.Add(agentLogs);
+
+      var installerLogs = GetInstallerLogs();
+      logGroups.Add(installerLogs);
 
       if (OperatingSystem.IsWindows())
       {
@@ -550,6 +555,26 @@ internal class FileManager(
     }
 
     return new LogFileGroupDto("Agent Logs", logFiles);
+  }
+
+  private LogFileGroupDto GetInstallerLogs()
+  {
+    var logFiles = new List<LogFileEntryDto>();
+
+    try
+    {
+      var logsDir = _fileSystemPathProvider.GetInstallerLogsDirectoryPath();
+      if (_fileSystem.DirectoryExists(logsDir))
+      {
+        logFiles.AddRange(GetLogFilesFromDirectory(logsDir));
+      }
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error getting installer logs");
+    }
+
+    return new LogFileGroupDto("Installer Logs", logFiles);
   }
 
   private List<LogFileEntryDto> GetLogFilesFromDirectory(string directoryPath)

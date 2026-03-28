@@ -1,3 +1,4 @@
+using ControlR.Libraries.Api.Contracts.Dtos.ServerApi;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Http;
 using ControlR.Libraries.Shared.Services.Processes;
@@ -26,22 +27,22 @@ internal class AgentUpdater(
   IControlrApi controlrApi,
   IDownloadsApi downloadsApi,
   IFileSystem fileSystem,
-  IProcessManager processInvoker,
+  IFileSystemPathProvider fileSystemPathProvider,
+  IProcessManager proessManager,
   ISystemEnvironment environmentHelper,
   ISettingsProvider settings,
   IHostApplicationLifetime appLifetime,
   IOptions<InstanceOptions> instanceOptions,
-  IControlrMutationLock mutationLock,
   ILogger<AgentUpdater> logger) : BackgroundService, IAgentUpdater
 {
   private readonly IHostApplicationLifetime _appLifetime = appLifetime;
   private readonly IControlrApi _controlrApi = controlrApi;
   private readonly IDownloadsApi _downloadsApi = downloadsApi;
   private readonly IFileSystem _fileSystem = fileSystem;
+  private readonly IFileSystemPathProvider _fileSystemPathProvider = fileSystemPathProvider;
   private readonly IOptions<InstanceOptions> _instanceOptions = instanceOptions;
   private readonly ILogger<AgentUpdater> _logger = logger;
-  private readonly IControlrMutationLock _mutationLock = mutationLock;
-  private readonly IProcessManager _processInvoker = processInvoker;
+  private readonly IProcessManager _processManager = proessManager;
   private readonly ISettingsProvider _settings = settings;
   private readonly ISystemEnvironment _systemEnvironment = environmentHelper;
   private readonly TimeProvider _timeProvider = timeProvider;
@@ -62,125 +63,46 @@ internal class AgentUpdater(
         _appLifetime.ApplicationStopping,
         updateCts.Token);
 
-    // Try to acquire the global mutation lock with a short timeout to avoid long waits during periodic checks.
-    using var lockHandle = await _mutationLock.TryAcquireAsync(TimeSpan.FromSeconds(5), linkedCts.Token);
-    if (lockHandle is null)
-    {
-      _logger.LogWarning("Skipped check: mutation lock not acquired within 5 seconds (another mutation may be in progress).");
-      return;
-    }
-
     try
     {
       _logger.LogInformation("Beginning version check.");
 
-      // Get remote hash
-      var hashResult = await _controlrApi.AgentUpdate.GetCurrentAgentHashSha256(_systemEnvironment.Runtime, linkedCts.Token);
-      if (!hashResult.IsSuccess)
+      var metadataResult = await _controlrApi.AgentUpdate.GetBundleMetadata(_systemEnvironment.Runtime, linkedCts.Token);
+      if (!metadataResult.IsSuccess || metadataResult.Value is null)
       {
-        _logger.LogError("Failed to retrieve remote hash.  Reason: {Reason}, StatusCode: {StatusCode}",
-          hashResult.Reason,
-          hashResult.StatusCode);
+        _logger.LogErrorDeduped(
+          "Failed to retrieve bundle metadata. Reason: {Reason}, StatusCode: {StatusCode}",
+          args: [metadataResult.Reason, metadataResult.StatusCode]);
         return;
       }
 
-      var remoteHash = hashResult.Value;
-      _logger.LogInformation("Remote hash: {RemoteHash}", remoteHash);
+      var metadata = metadataResult.Value;
+      _logger.LogInformation("Remote bundle hash: {RemoteHash}", metadata.BundleSha256);
 
-      // Check local hash
-      var agentPath = _systemEnvironment.StartupExePath;
-      if (string.IsNullOrWhiteSpace(agentPath) || !_fileSystem.FileExists(agentPath))
+      var localHash = GetInstalledBundleHash();
+      if (!string.IsNullOrWhiteSpace(localHash))
       {
-        _logger.LogError("Could not determine current agent file path.");
-        return;
+        _logger.LogInformation("Installed bundle hash: {LocalHash}", localHash);
       }
 
-      await using var fs = _fileSystem.OpenFileStream(agentPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-      var localHashBytes = await SHA256.HashDataAsync(fs, linkedCts.Token);
-      var localHash = Convert.ToHexString(localHashBytes);
-      _logger.LogInformation("Local hash: {LocalHash}", localHash);
-
-      // Compare hashes
-      if (string.Equals(localHash, remoteHash, StringComparison.OrdinalIgnoreCase))
+      if (string.Equals(localHash, metadata.BundleSha256, StringComparison.OrdinalIgnoreCase))
       {
         _logger.LogInformation("Version is current (hash match).");
         return;
       }
 
-      _logger.LogInformation("Update found. Downloading update.");
+      _logger.LogInformation("Update found. Downloading bootstrap installer.");
 
-      var downloadPath = AppConstants.GetAgentFileDownloadPath(_systemEnvironment.Runtime);
-      var downloadUrl = new Uri(_settings.ServerUri, downloadPath).ToString();
-
-      var tempDirPath = string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId)
-        ? Path.Combine(Path.GetTempPath(), "ControlR_Update")
-        : Path.Combine(Path.GetTempPath(), "ControlR_Update", _instanceOptions.Value.InstanceId);
-
-      _ = _fileSystem.CreateDirectory(tempDirPath);
-      var tempPath = Path.Combine(tempDirPath, AppConstants.GetAgentFileName(_systemEnvironment.Platform));
-
-      if (_fileSystem.FileExists(tempPath))
+      var installerPath = await DownloadInstaller(metadata, linkedCts.Token);
+      if (installerPath is null)
       {
-        _fileSystem.DeleteFile(tempPath);
-      }
-
-      var result = await _downloadsApi.DownloadFile(downloadUrl, tempPath, linkedCts.Token);
-      if (!result.IsSuccess)
-      {
-        _logger.LogCritical("Download failed.  Aborting update.");
         return;
       }
 
       _logger.LogInformation("Launching installer.");
 
-      var tenantId = _settings.GetRequiredTenantId();
-      var installCommand = $"install -t {tenantId}";
-      if (_instanceOptions.Value.InstanceId is { } instanceId)
-      {
-        installCommand += $" -i {instanceId}";
-      }
-
-      switch (_systemEnvironment.Platform)
-      {
-        case SystemPlatform.Windows:
-          {
-            await _processInvoker
-              .Start(tempPath, installCommand)
-              .WaitForExitAsync(linkedCts.Token);
-          }
-          break;
-
-        case SystemPlatform.Linux:
-          {
-            await _processInvoker
-              .Start("sudo", $"chmod +x {tempPath}")
-              .WaitForExitAsync(linkedCts.Token);
-
-            await _processInvoker.StartAndWaitForExit(
-              "/bin/bash",
-              $"-c \"{tempPath} {installCommand} &\"",
-              true,
-              linkedCts.Token);
-          }
-          break;
-
-        case SystemPlatform.MacOs:
-          {
-            await _processInvoker
-              .Start("sudo", $"chmod +x {tempPath}")
-              .WaitForExitAsync(linkedCts.Token);
-
-            await _processInvoker.StartAndWaitForExit(
-              "/bin/zsh",
-              $"-c \"{tempPath} {installCommand} &\"",
-              true,
-              linkedCts.Token);
-          }
-          break;
-
-        default:
-          throw new PlatformNotSupportedException();
-      }
+      var installCommand = BuildInstallCommand();
+      await LaunchInstaller(installerPath, installCommand, linkedCts.Token);
     }
     catch (OperationCanceledException ex)
     {
@@ -191,8 +113,6 @@ internal class AgentUpdater(
       _logger.LogError(ex, "Error while checking for updates.");
     }
   }
-
-
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
@@ -209,6 +129,140 @@ internal class AgentUpdater(
     while (await timer.WaitForNextTickAsync(stoppingToken))
     {
       await CheckForUpdate(cancellationToken: stoppingToken);
+    }
+  }
+
+  private static string GetInstallerFileName(string downloadPath)
+  {
+    if (Uri.TryCreate(downloadPath, UriKind.RelativeOrAbsolute, out var uri))
+    {
+      var sourcePath = uri.IsAbsoluteUri ? uri.LocalPath : uri.OriginalString;
+      var fileName = Path.GetFileName(sourcePath);
+      if (!string.IsNullOrWhiteSpace(fileName))
+      {
+        return fileName;
+      }
+    }
+
+    throw new InvalidOperationException($"Installer download path '{downloadPath}' does not contain a file name.");
+  }
+
+  private static string QuoteArgument(string value)
+  {
+    var escapedValue = value.Replace("\"", "\\\"");
+    return $"\"{escapedValue}\"";
+  }
+
+  private string BuildInstallCommand()
+  {
+    var arguments = new List<string>
+    {
+      "install",
+      $"--server-uri {QuoteArgument(_settings.ServerUri.ToString())}",
+      $"--tenant-id {_settings.GetRequiredTenantId()}"
+    };
+
+    if (!string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))
+    {
+      arguments.Add($"--instance-id {QuoteArgument(_instanceOptions.Value.InstanceId)}");
+    }
+
+    return string.Join(" ", arguments);
+  }
+
+  private async Task<string?> DownloadInstaller(BundleMetadataDto metadata, CancellationToken cancellationToken)
+  {
+    var tempDirPath = string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId)
+      ? Path.Combine(Path.GetTempPath(), "ControlR_Update")
+      : Path.Combine(Path.GetTempPath(), "ControlR_Update", _instanceOptions.Value.InstanceId);
+
+    _ = _fileSystem.CreateDirectory(tempDirPath);
+
+    var installerFileName = GetInstallerFileName(metadata.InstallerDownloadUrl);
+    var installerPath = Path.Combine(tempDirPath, installerFileName);
+
+    if (_fileSystem.FileExists(installerPath))
+    {
+      _fileSystem.DeleteFile(installerPath);
+    }
+
+    var downloadResult = await _downloadsApi.DownloadFile(metadata.InstallerDownloadUrl, installerPath, cancellationToken);
+    if (!downloadResult.IsSuccess)
+    {
+      _logger.LogCritical(
+        "Failed to download installer from {DownloadUrl}. Reason: {Reason}",
+        metadata.InstallerDownloadUrl,
+        downloadResult.Reason);
+      return null;
+    }
+
+    var installerBytes = await _fileSystem.ReadAllBytesAsync(installerPath);
+    var installerHash = Convert.ToHexString(SHA256.HashData(installerBytes));
+    if (!string.Equals(installerHash, metadata.InstallerSha256, StringComparison.OrdinalIgnoreCase))
+    {
+      _logger.LogCritical(
+        "Installer hash mismatch. Expected: {ExpectedHash}, Actual: {ActualHash}",
+        metadata.InstallerSha256,
+        installerHash);
+      _fileSystem.DeleteFile(installerPath);
+      return null;
+    }
+
+    return installerPath;
+  }
+
+  private string? GetInstalledBundleHash()
+  {
+    var bundleHashPath = _fileSystemPathProvider.GetBundleHashFilePath();
+    if (!_fileSystem.FileExists(bundleHashPath))
+    {
+      _logger.LogInformation("Installed bundle hash file was not found at {HashPath}.", bundleHashPath);
+      return null;
+    }
+
+    var installedHash = _fileSystem.ReadAllText(bundleHashPath).Trim();
+    return string.IsNullOrWhiteSpace(installedHash) ? null : installedHash;
+  }
+
+  private async Task LaunchInstaller(string installerPath, string installCommand, CancellationToken cancellationToken)
+  {
+    switch (_systemEnvironment.Platform)
+    {
+      case SystemPlatform.Windows:
+        await _processManager
+          .Start(installerPath, installCommand)
+          .WaitForExitAsync(cancellationToken);
+        break;
+
+      case SystemPlatform.Linux:
+        await _processManager
+          .Start("sudo", $"chmod +x {installerPath}")
+          .WaitForExitAsync(cancellationToken);
+
+        // Use systemd-run to launch installer in a separate scope to prevent
+        // it from being killed when the agent service stops
+        var systemdRunCommand = $"--scope {installerPath} {installCommand}";
+        await _processManager.StartAndWaitForExit(
+          "sudo",
+          $"systemd-run {systemdRunCommand}",
+          false,
+          cancellationToken);
+        break;
+
+      case SystemPlatform.MacOs:
+        await _processManager
+          .Start("sudo", $"chmod +x {installerPath}")
+          .WaitForExitAsync(cancellationToken);
+
+        await _processManager.StartAndWaitForExit(
+          "/bin/zsh",
+          $"-c \"{installerPath} {installCommand} &\"",
+          true,
+          cancellationToken);
+        break;
+
+      default:
+        throw new PlatformNotSupportedException();
     }
   }
 }

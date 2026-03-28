@@ -1,4 +1,3 @@
-using ControlR.Agent.Common.Interfaces;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Hosting;
@@ -14,19 +13,19 @@ internal class DesktopClientWatcherLinux(
   IHeadlessServerDetector headlessServerDetector,
   ISystemEnvironment systemEnvironment,
   IFileSystem fileSystem,
-  IControlrMutationLock mutationLock,
   ILoggedInUserProvider loggedInUserProvider,
   IProcessManager processManager,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<DesktopClientWatcherLinux> logger) : BackgroundService
 {
+  private const int ProcessCommandTimeoutMs = 5_000;
+
   private readonly IDesktopEnvironmentDetectorAgent _desktopEnvironmentDetector = desktopEnvironmentDetector;
   private readonly IFileSystem _fileSystem = fileSystem;
   private readonly IHeadlessServerDetector _headlessServerDetector = headlessServerDetector;
   private readonly IOptions<InstanceOptions> _instanceOptions = instanceOptions;
   private readonly ILoggedInUserProvider _loggedInUserProvider = loggedInUserProvider;
   private readonly ILogger<DesktopClientWatcherLinux> _logger = logger;
-  private readonly IControlrMutationLock _mutationLock = mutationLock;
   private readonly IProcessManager _processManager = processManager;
   private readonly IServiceControl _serviceControl = serviceControl;
   private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
@@ -56,7 +55,6 @@ internal class DesktopClientWatcherLinux(
           continue;
         }
 
-        using var mutationLock = await _mutationLock.AcquireAsync(stoppingToken);
         await CheckAndStartDesktopClientServices(stoppingToken);
       }
       catch (Exception ex)
@@ -67,7 +65,6 @@ internal class DesktopClientWatcherLinux(
 
     await _serviceControl.StopDesktopClientService(throwOnFailure: false);
   }
-
 
   private async Task CheckAndStartDesktopClientServices(CancellationToken cancellationToken)
   {
@@ -109,12 +106,18 @@ internal class DesktopClientWatcherLinux(
       if (!isRunning)
       {
         _logger.LogDeduped(LogLevel.Information, "Desktop client service not running for user {UID}. Starting service.", args: uid);
-        await _serviceControl.StartDesktopClientService(throwOnFailure: true);
+        await StartDesktopClientServiceForUser(uid, serviceName, cancellationToken);
+        return;
       }
-      else
+
+      if (await HasDeletedDesktopClientExecutable(uid, serviceName))
       {
-        _logger.LogDeduped(LogLevel.Information, "Desktop client service is running for user {UID}.", args: uid);
+        _logger.LogDeduped(LogLevel.Warning, "Desktop client service for user {UID} is running from a deleted executable. Restarting service.", args: uid);
+        await RestartDesktopClientServiceForUser(uid, serviceName, cancellationToken);
+        return;
       }
+
+      _logger.LogDeduped(LogLevel.Information, "Desktop client service is running for user {UID}.", args: uid);
     }
     catch (Exception ex)
     {
@@ -148,10 +151,51 @@ internal class DesktopClientWatcherLinux(
         "Login screen detected. Type: X11, Display: {Display}, XAuth: {XAuth}, DM: {DisplayManager}",
         args: (displayInfo.Display, displayInfo.XAuthPath ?? "none", displayInfo.DisplayManager ?? "unknown"));
         
+    var isLoginScreenRunning = await IsLoginScreenDesktopClientRunning();
+    if (isLoginScreenRunning && await HasDeletedLoginScreenDesktopClientExecutable())
+    {
+      _logger.LogDeduped(
+        LogLevel.Warning,
+        "Login screen desktop client is running from a deleted executable. Restarting it.");
+
+      await StopLoginScreenDesktopClient();
+      isLoginScreenRunning = false;
+    }
+
     // Launch the desktop client for the login screen if needed
-    if (!await IsLoginScreenDesktopClientRunning())
+    if (!isLoginScreenRunning)
     {
       _ = LaunchLoginScreenDesktopClient(displayInfo, cancellationToken);
+    }
+  }
+
+  private async Task<int?> GetDesktopClientMainProcessId(string uid, string serviceName)
+  {
+    try
+    {
+      var result = await _processManager.GetProcessOutput(
+        "sudo",
+        $"-u #{uid} XDG_RUNTIME_DIR=/run/user/{uid} systemctl --user show {serviceName} --property MainPID --value",
+        ProcessCommandTimeoutMs);
+
+      if (!result.IsSuccess)
+      {
+        _logger.LogDeduped(LogLevel.Warning, "Failed to resolve main PID for desktop service {ServiceName} and user {UID}: {Reason}", args: (serviceName, uid, result.Reason));
+        return null;
+      }
+
+      var output = result.Value?.Trim();
+      if (!int.TryParse(output, out var pid) || pid <= 0)
+      {
+        return null;
+      }
+
+      return pid;
+    }
+    catch (Exception ex)
+    {
+      _logger.LogDeduped(LogLevel.Warning, "Failed to read main PID for desktop service {ServiceName} and user {UID}.", args: (serviceName, uid), exception: ex);
+      return null;
     }
   }
 
@@ -177,13 +221,54 @@ internal class DesktopClientWatcherLinux(
     return Path.Combine(dir, _instanceOptions.Value.InstanceId);
   }
 
+  private async Task<bool> HasDeletedDesktopClientExecutable(string uid, string serviceName)
+  {
+    var processId = await GetDesktopClientMainProcessId(uid, serviceName);
+    if (processId is null)
+    {
+      return false;
+    }
+
+    return await IsDeletedExecutable(processId.Value);
+  }
+
+  private async Task<bool> HasDeletedLoginScreenDesktopClientExecutable()
+  {
+    if (_loginScreenProcess is null)
+    {
+      return false;
+    }
+
+    return await IsDeletedExecutable(_loginScreenProcess.Id);
+  }
+
+  private async Task<bool> IsDeletedExecutable(int processId)
+  {
+    try
+    {
+      var result = await _processManager.GetProcessOutput("readlink", $"/proc/{processId}/exe", ProcessCommandTimeoutMs);
+      if (!result.IsSuccess)
+      {
+        return false;
+      }
+
+      var executablePath = result.Value?.Trim();
+      return executablePath?.EndsWith(" (deleted)", StringComparison.Ordinal) == true;
+    }
+    catch (Exception ex)
+    {
+      _logger.LogDeduped(LogLevel.Warning, "Failed to inspect executable path for PID {PID}.", args: processId, exception: ex);
+      return false;
+    }
+  }
+
   private async Task<bool> IsDesktopClientServiceRunning(string uid, string serviceName)
   {
     try
     {
       // Use systemctl to check whether the user service is running
       // Set the XDG_RUNTIME_DIR for the user context
-      var result = await _processManager.GetProcessOutput("sudo", $"-u #{uid} XDG_RUNTIME_DIR=/run/user/{uid} systemctl --user is-active {serviceName}", 5000);
+      var result = await _processManager.GetProcessOutput("sudo", $"-u #{uid} XDG_RUNTIME_DIR=/run/user/{uid} systemctl --user is-active {serviceName}", ProcessCommandTimeoutMs);
 
       if (!result.IsSuccess)
       {
@@ -302,6 +387,30 @@ internal class DesktopClientWatcherLinux(
     {
       _logger.LogError(ex, "Error launching login screen desktop client");
     }
+  }
+
+  private async Task RestartDesktopClientServiceForUser(string uid, string serviceName, CancellationToken cancellationToken)
+  {
+    await RunDesktopClientServiceCommandForUser(uid, serviceName, "restart", cancellationToken);
+  }
+
+  private async Task RunDesktopClientServiceCommandForUser(string uid, string serviceName, string command, CancellationToken cancellationToken)
+  {
+    var exitCode = await _processManager.StartAndWaitForExit(
+      "sudo",
+      $"-u #{uid} XDG_RUNTIME_DIR=/run/user/{uid} systemctl --user {command} {serviceName}",
+      false,
+      cancellationToken);
+
+    if (exitCode != 0)
+    {
+      throw new InvalidOperationException($"systemctl --user {command} {serviceName} failed for UID {uid} with exit code {exitCode}.");
+    }
+  }
+
+  private Task StartDesktopClientServiceForUser(string uid, string serviceName, CancellationToken cancellationToken)
+  {
+    return RunDesktopClientServiceCommandForUser(uid, serviceName, "start", cancellationToken);
   }
 
   private Task StopLoginScreenDesktopClient()

@@ -1,4 +1,4 @@
-﻿using ControlR.Agent.Common.Services;
+﻿using ControlR.Agent.Shared.Services;
 using Microsoft.Extensions.Hosting;
 
 namespace ControlR.Agent.LoadTester;

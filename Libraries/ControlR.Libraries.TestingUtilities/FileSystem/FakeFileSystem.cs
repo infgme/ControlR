@@ -237,6 +237,13 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 		}
 	}
 
+	public Task ExtractZipArchiveAsync(string sourceArchiveFileName, string destinationDirectoryName, bool overwriteFiles, CancellationToken cancellationToken = default)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		ExtractZipArchive(sourceArchiveFileName, destinationDirectoryName, overwriteFiles);
+		return Task.CompletedTask;
+	}
+
 	public bool FileExists(string path)
 	{
 		lock (_syncRoot)

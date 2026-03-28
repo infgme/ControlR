@@ -1,5 +1,3 @@
-using ControlR.DesktopClient.ViewModels;
-
 namespace ControlR.DesktopClient.Services;
 
 public interface IViewModelFactory

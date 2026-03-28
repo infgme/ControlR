@@ -1,5 +1,5 @@
-using ControlR.Agent.Common.Options;
-using ControlR.Agent.Common.Services;
+using ControlR.Agent.Shared.Options;
+using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Api.Contracts.Constants;
 
 namespace ControlR.Agent.LoadTester;

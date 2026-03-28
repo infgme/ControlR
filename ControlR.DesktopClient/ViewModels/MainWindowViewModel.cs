@@ -1,9 +1,5 @@
 using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using ControlR.DesktopClient.Common;
 using ControlR.DesktopClient.Services;
-using ControlR.Libraries.Api.Contracts.Enums;
-using ControlR.Libraries.Shared.Services;
 
 namespace ControlR.DesktopClient.ViewModels;
 
@@ -17,14 +13,12 @@ public interface IMainWindowViewModel : IViewModelBase
 public partial class MainWindowViewModel(
   IMainWindowProvider mainWindowProvider,
   IViewModelFactory viewModelFactory,
-  ISystemEnvironment systemEnvironment,
-  IServiceProvider serviceProvider,
+  IEnumerable<INavigationItemProvider> navigationItemProviders,
   INavigationProvider navigationProvider) : ViewModelBase<MainWindow>, IMainWindowViewModel
 {
   private readonly IMainWindowProvider _mainWindowProvider = mainWindowProvider;
+  private readonly IEnumerable<INavigationItemProvider> _navigationItemProviders = navigationItemProviders;
   private readonly INavigationProvider _navigationProvider = navigationProvider;
-  private readonly IServiceProvider _serviceProvider = serviceProvider;
-  private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
   private readonly IViewModelFactory _viewModelFactory = viewModelFactory;
 
   [ObservableProperty]
@@ -51,28 +45,15 @@ public partial class MainWindowViewModel(
       return;
     }
 
-    var items = new List<INavItemViewModel>
-    {
-      _viewModelFactory.CreateNavItem<IConnectionsViewModel>("home_regular", Localization.Connections),
-      _viewModelFactory.CreateNavItem<ISettingsViewModel>("settings_regular", Localization.Settings),
-      _viewModelFactory.CreateNavItem<IAboutViewModel>("question_circle_regular", Localization.About)
-    };
-
-    #if IS_MACOS
-      items.Insert(1, _viewModelFactory.CreateNavItem<IPermissionsViewModelMac>("shield_keyhole_regular", Localization.Permissions));
-    #elif IS_LINUX
-      var desktopEnv = _serviceProvider.GetRequiredService<IDesktopEnvironmentDetector>();
-      if (desktopEnv.IsWayland())
+    var items = _navigationItemProviders
+      .SelectMany(provider => provider.GetNavigationItems())
+      .OrderBy(descriptor => descriptor.Order)
+      .Select(descriptor =>
       {
-        items.Insert(1, _viewModelFactory.CreateNavItem<IPermissionsViewModelWayland>("shield_keyhole_regular", Localization.Permissions));
-      }
-      else
-      {
-        items.Insert(1, _viewModelFactory.CreateNavItem<IPermissionsViewModel>("shield_keyhole_regular", Localization.Permissions));
-      }
-    #else
-      items.Insert(1, _viewModelFactory.CreateNavItem<IPermissionsViewModel>("shield_keyhole_regular", Localization.Permissions));
-    #endif
+        descriptor.ThrowIfInvalid();
+        return _viewModelFactory.CreateNavItem(descriptor.ViewModelType, descriptor.IconKey, descriptor.Label);
+      })
+      .ToList();
 
     NavigationItems.AddRange(items);
 

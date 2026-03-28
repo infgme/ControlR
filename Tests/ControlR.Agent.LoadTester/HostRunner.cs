@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ControlR.Agent.LoadTester.Helpers;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Services;
 
 namespace ControlR.Agent.LoadTester;
 public static class HostRunner
@@ -62,7 +64,6 @@ public static class HostRunner
         });
 
       builder.Services.ReplaceService<IAgentUpdater, FakeAgentUpdater>(ServiceLifetime.Singleton);
-      builder.Services.ReplaceService<IDesktopClientUpdater, FakeDesktopClientUpdater>(ServiceLifetime.Singleton);
       builder.Services.ReplaceService<ICpuUtilizationSampler, FakeCpuUtilizationSampler>(ServiceLifetime.Singleton);
       builder.Services.ReplaceService<ISettingsProvider, FakeSettingsProvider>(ServiceLifetime.Singleton, new FakeSettingsProvider(deviceId, serverUri));
       builder.Services.RemoveImplementation<IpcServerWatcher>();

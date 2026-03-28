@@ -1,13 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ControlR.DesktopClient.Common\ControlR.DesktopClient.Common.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.NativeInterop.Linux\ControlR.Libraries.NativeInterop.Linux.csproj" />
     <ProjectReference Include="..\Libraries\ControlR.Libraries.Serilog\ControlR.Libraries.Serilog.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+    <PackageReference Include="Avalonia" />
 		<PackageReference Update="Bitbound.Analyzers.MemberOrder">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -18,4 +20,9 @@
 		<PackageReference Include="Tmds.DBus" />
 		<PackageReference Include="Tmds.DBus.Protocol" />
 	</ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\PermissionsViewWayland.axaml.cs">
+      <DependentUpon>PermissionsViewWayland.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

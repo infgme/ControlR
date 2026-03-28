@@ -117,9 +117,9 @@ internal class RemoteDisplayViewModelFake : IRemoteDisplayViewModel
   public bool ShowWindowsInputControls => true;
   public ViewMode ViewMode => ViewMode.Fit;
 
-  public ScopedGuard<SKBitmap?> AcquireCompositedFrame()
+  public LockedValueToken<SKBitmap?> AcquireCompositedFrame()
   {
-    return new ScopedGuard<SKBitmap?>(() => null, _ => { }, () => { });
+    return new LockedValueToken<SKBitmap?>(() => null, _ => { }, () => { });
   }
 
   public void Dispose()

@@ -23,13 +23,13 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
     try
     {
       var displayIds = new uint[MaxDisplays];
-      var result = CoreGraphics.CGGetOnlineDisplayList(MaxDisplays, displayIds, out var displayCount);
+      var result = CoreGraphicsInterop.CGGetOnlineDisplayList(MaxDisplays, displayIds, out var displayCount);
 
       if (result != 0 || displayCount == 0)
       {
         // Fallback to main display only
         _logger.LogWarning("DisplayEnumHelperMac: Using fallback, result={Result}, displayCount={Count}", result, displayCount);
-        var mainDisplayId = CoreGraphics.CGMainDisplayID();
+        var mainDisplayId = CoreGraphicsInterop.CGMainDisplayID();
         return [CreateDisplayInfo(mainDisplayId, 0, true)];
       }
 
@@ -37,7 +37,7 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
       for (var i = 0; i < displayCount; i++)
       {
         var displayId = displayIds[i];
-        var isMain = CoreGraphics.CGDisplayIsMain(displayId);
+        var isMain = CoreGraphicsInterop.CGDisplayIsMain(displayId);
         var displayInfo = CreateDisplayInfo(displayId, i, isMain);
         displays.Add(displayInfo);
       }
@@ -46,7 +46,7 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
     {
       // Fallback to main display only
       _logger.LogError(ex, "DisplayEnumHelperMac: Exception occurred while enumerating displays");
-      var mainDisplayId = CoreGraphics.CGMainDisplayID();
+      var mainDisplayId = CoreGraphicsInterop.CGMainDisplayID();
       displays.Add(CreateDisplayInfo(mainDisplayId, 0, true));
     }
 
@@ -55,7 +55,7 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
 
   private DisplayInfo CreateDisplayInfo(uint displayId, int index, bool isMain)
   {
-    var bounds = CoreGraphics.CGDisplayBounds(displayId);
+    var bounds = CoreGraphicsInterop.CGDisplayBounds(displayId);
     var logicalWidth = (int)bounds.Width;
     var logicalHeight = (int)bounds.Height;
 
@@ -67,11 +67,11 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
     try
     {
       // Create a test capture to get actual pixel dimensions
-      testImageRef = CoreGraphics.CGDisplayCreateImage(displayId);
+      testImageRef = CoreGraphicsInterop.CGDisplayCreateImage(displayId);
       if (testImageRef != nint.Zero)
       {
-        pixelWidth = (int)CoreGraphics.CGImageGetWidth(testImageRef);
-        pixelHeight = (int)CoreGraphics.CGImageGetHeight(testImageRef);
+        pixelWidth = (int)CoreGraphicsInterop.CGImageGetWidth(testImageRef);
+        pixelHeight = (int)CoreGraphicsInterop.CGImageGetHeight(testImageRef);
 
       }
     }
@@ -85,7 +85,7 @@ internal class DisplayEnumHelperMac(ILogger<DisplayEnumHelperMac> logger) : IDis
     {
       if (testImageRef != nint.Zero)
       {
-        CoreGraphics.CFRelease(testImageRef);
+        CoreGraphicsInterop.CFRelease(testImageRef);
       }
     }
 

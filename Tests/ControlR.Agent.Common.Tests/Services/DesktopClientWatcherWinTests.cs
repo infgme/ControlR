@@ -2,9 +2,11 @@ using System.Runtime.Versioning;
 using ControlR.Agent.Common.Interfaces;
 using ControlR.Agent.Common.Services;
 using ControlR.Agent.Common.Services.Windows;
+using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Api.Contracts.Dtos.Devices;
 using ControlR.Libraries.NativeInterop.Windows;
 using ControlR.Libraries.Shared.Services;
+using ControlR.Libraries.Shared.Primitives;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Logging;
@@ -14,17 +16,17 @@ using Moq;
 
 namespace ControlR.Agent.Common.Tests.Services;
 
-[SupportedOSPlatform("windows6.0.6000")]
+[SupportedOSPlatform("windows8.0")]
 public class DesktopClientWatcherWinTests
 {
-  private readonly Mock<IDesktopClientUpdater> _desktopClientUpdater = new();
+  private readonly Mock<IDesktopClientFileVerifier> _desktopClientFileVerifier = new();
   private readonly Mock<IDesktopSessionProvider> _desktopSessionProvider = new();
   private readonly Mock<ISystemEnvironment> _environment = new();
   private readonly Mock<IFileSystem> _fileSystem = new();
   private readonly Mock<IIpcServerStore> _ipcServerStore = new();
   private readonly ILogger<DesktopClientLaunchTracker> _launchTrackerLogger = new NullLogger<DesktopClientLaunchTracker>();
   private readonly Mock<ILogger<DesktopClientWatcherWin>> _logger = new();
-  private readonly Mock<IControlrMutationLock> _mutationLock = new();
+  private readonly Mock<IFileSystemPathProvider> _pathProvider = new();
   private readonly Mock<IProcessManager> _processManager = new();
   private readonly Mock<ISettingsProvider> _settingsProvider = new();
   private readonly FakeTimeProvider _timeProvider = new(DateTimeOffset.UtcNow);
@@ -89,12 +91,6 @@ public class DesktopClientWatcherWinTests
     _desktopSessionProvider
       .Setup(x => x.GetActiveDesktopClients())
       .ReturnsAsync([]);
-    _desktopClientUpdater
-      .Setup(x => x.EnsureLatestVersion(false, It.IsAny<CancellationToken>()))
-      .ReturnsAsync(true);
-    _mutationLock
-      .Setup(x => x.AcquireAsync(It.IsAny<CancellationToken>()))
-      .ReturnsAsync(mutationLock);
     _win32Interop
       .Setup(x => x.CreateInteractiveSystemProcess(It.IsAny<string>(), 5, true, out startedProcess))
       .Returns(false);
@@ -141,6 +137,13 @@ public class DesktopClientWatcherWinTests
     _environment.SetupGet(x => x.IsDebug).Returns(false);
     _environment.SetupGet(x => x.StartupDirectory).Returns("C:\\ControlR");
     _settingsProvider.SetupGet(x => x.InstanceId).Returns("instance-1");
+    _desktopClientFileVerifier
+      .Setup(x => x.VerifyFile(It.IsAny<string>()))
+      .Returns(Result.Ok());
+    _fileSystem
+      .Setup(x => x.FileExists(It.IsAny<string>()))
+      .Returns(true);
+    _pathProvider.Setup(x => x.GetDesktopExecutablePath()).Returns("C:\\ControlR\\DesktopClient\\ControlR.DesktopClient.exe");
     _waiter
       .Setup(x => x.WaitFor(
         It.IsAny<Func<bool>>(),
@@ -158,11 +161,11 @@ public class DesktopClientWatcherWinTests
       _environment.Object,
       _fileSystem.Object,
       _settingsProvider.Object,
-      _mutationLock.Object,
       _desktopSessionProvider.Object,
-      _desktopClientUpdater.Object,
+      _desktopClientFileVerifier.Object,
       launchTracker,
       _waiter.Object,
+      _pathProvider.Object,
       _logger.Object);
   }
 }

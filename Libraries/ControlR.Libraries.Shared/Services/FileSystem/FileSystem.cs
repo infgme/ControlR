@@ -16,6 +16,7 @@ public interface IFileSystem
   void DeleteFile(string filePath);
   bool DirectoryExists(string directoryPath);
   void ExtractZipArchive(string sourceArchiveFileName, string destinationDirectoryName, bool overwriteFiles);
+  Task ExtractZipArchiveAsync(string sourceArchiveFileName, string destinationDirectoryName, bool overwriteFiles, CancellationToken cancellationToken = default);
   bool FileExists(string path);
   string[] GetDirectories(string path);
   IFileSystemDirectory GetDirectoryInfo(string directoryPath);
@@ -103,6 +104,15 @@ public class FileSystem(ILogger<FileSystem> logger) : IFileSystem
   public void ExtractZipArchive(string sourceArchiveFileName, string destinationDirectoryName, bool overwriteFiles)
   {
     System.IO.Compression.ZipFile.ExtractToDirectory(sourceArchiveFileName, destinationDirectoryName, overwriteFiles);
+  }
+
+  public Task ExtractZipArchiveAsync(string sourceArchiveFileName, string destinationDirectoryName, bool overwriteFiles, CancellationToken cancellationToken = default)
+  {
+    return System.IO.Compression.ZipFile.ExtractToDirectoryAsync(
+      sourceArchiveFileName,
+      destinationDirectoryName,
+      overwriteFiles,
+      cancellationToken);
   }
 
   public bool FileExists(string path)

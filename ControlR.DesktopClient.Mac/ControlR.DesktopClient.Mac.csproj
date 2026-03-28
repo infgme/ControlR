@@ -1,20 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-    <!-- <TargetFramework>$(TargetFramework)-macos</TargetFramework> -->
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-	<ItemGroup>
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <TargetFramework>$(MacTargetFramework)</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
 		<ProjectReference Include="..\ControlR.DesktopClient.Common\ControlR.DesktopClient.Common.csproj" />
 		<ProjectReference Include="..\Libraries\ControlR.Libraries.NativeInterop.Mac\ControlR.Libraries.NativeInterop.Mac.csproj" />
     <ProjectReference Include="..\Libraries\ControlR.Libraries.Serilog\ControlR.Libraries.Serilog.csproj" />
-	</ItemGroup>
-	<ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
 		<PackageReference Update="Bitbound.Analyzers.MemberOrder">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-	</ItemGroup>
-	<ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
 	  <PackageReference Include="CommunityToolkit.Mvvm" />
 	</ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\PermissionsViewMac.axaml.cs">
+      <DependentUpon>PermissionsViewMac.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

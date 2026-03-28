@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetFramework>$(MacTargetFramework)</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ControlR.Libraries.Shared\ControlR.Libraries.Shared.csproj" />

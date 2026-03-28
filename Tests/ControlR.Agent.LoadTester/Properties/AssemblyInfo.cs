@@ -1,3 +1,3 @@
 ﻿using System.Runtime.Versioning;
 
-[assembly: SupportedOSPlatform("windows6.0.6000")]
+[assembly: SupportedOSPlatform("windows8.0")]

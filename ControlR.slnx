@@ -38,6 +38,7 @@
   <Folder Name="/Tests/">
     <Project Path="Tests/ControlR.Agent.Common.Tests/ControlR.Agent.Common.Tests.csproj" />
     <Project Path="Tests/ControlR.Agent.LoadTester/ControlR.Agent.LoadTester.csproj" />
+    <Project Path="Tests/ControlR.Agent.Shared.Tests/ControlR.Agent.Shared.Tests.csproj" />
     <Project Path="Tests/ControlR.DesktopClient.Common.Tests/ControlR.DesktopClient.Common.Tests.csproj" />
     <Project Path="Tests/ControlR.DesktopClient.Linux.Tests/ControlR.DesktopClient.Linux.Tests.csproj" />
     <Project Path="Tests/ControlR.DesktopClient.Tests/ControlR.DesktopClient.Tests.csproj" />
@@ -50,6 +51,8 @@
     <Project Path="Tests/ControlR.Web.Server.Tests/ControlR.Web.Server.Tests.csproj" />
   </Folder>
   <Project Path="ControlR.Agent.Common/ControlR.Agent.Common.csproj" />
+  <Project Path="ControlR.Agent.Installer/ControlR.Agent.Installer.csproj" />
+  <Project Path="ControlR.Agent.Shared/ControlR.Agent.Shared.csproj" />
   <Project Path="ControlR.Agent/ControlR.Agent.csproj" />
   <Project Path="ControlR.ApiClient/ControlR.ApiClient.csproj" />
   <Project Path="ControlR.DesktopClient.Common/ControlR.DesktopClient.Common.csproj" />

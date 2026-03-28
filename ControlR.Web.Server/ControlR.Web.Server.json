@@ -207,6 +207,35 @@
         }
       }
     },
+    "/api/agent-update/get-bundle-metadata/{runtime}": {
+      "get": {
+        "tags": [
+          "AgentUpdate"
+        ],
+        "parameters": [
+          {
+            "name": "runtime",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RuntimeId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BundleMetadataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agent-update/get-hash-sha256/{runtime}": {
       "get": {
         "tags": [
@@ -2842,6 +2871,38 @@
       },
       "Architecture": {
         "type": "integer"
+      },
+      "BundleMetadataDto": {
+        "required": [
+          "bundleDownloadUrl",
+          "bundleSha256",
+          "installerDownloadUrl",
+          "installerSha256",
+          "runtime",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "bundleDownloadUrl": {
+            "type": "string"
+          },
+          "bundleSha256": {
+            "type": "string"
+          },
+          "installerDownloadUrl": {
+            "type": "string"
+          },
+          "installerSha256": {
+            "type": "string"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/RuntimeId"
+          },
+          "version": {
+            "pattern": "^\\d+(\\.\\d+){1,3}$",
+            "type": "string"
+          }
+        }
       },
       "CreateDeviceRequestDto": {
         "required": [

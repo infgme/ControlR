@@ -13,24 +13,24 @@ internal static class CoreGraphicsHelper
 
     try
     {
-      var width = (int)CoreGraphics.CGImageGetWidth(cgImageRef);
-      var height = (int)CoreGraphics.CGImageGetHeight(cgImageRef);
-      var bitsPerComponent = (int)CoreGraphics.CGImageGetBitsPerComponent(cgImageRef);
-      var bitsPerPixel = (int)CoreGraphics.CGImageGetBitsPerPixel(cgImageRef);
-      var bytesPerRow = (int)CoreGraphics.CGImageGetBytesPerRow(cgImageRef);
+      var width = (int)CoreGraphicsInterop.CGImageGetWidth(cgImageRef);
+      var height = (int)CoreGraphicsInterop.CGImageGetHeight(cgImageRef);
+      var bitsPerComponent = (int)CoreGraphicsInterop.CGImageGetBitsPerComponent(cgImageRef);
+      var bitsPerPixel = (int)CoreGraphicsInterop.CGImageGetBitsPerPixel(cgImageRef);
+      var bytesPerRow = (int)CoreGraphicsInterop.CGImageGetBytesPerRow(cgImageRef);
 
-      var dataProvider = CoreGraphics.CGImageGetDataProvider(cgImageRef);
+      var dataProvider = CoreGraphicsInterop.CGImageGetDataProvider(cgImageRef);
       if (dataProvider == nint.Zero)
         return null;
 
-      var data = CoreGraphics.CGDataProviderCopyData(dataProvider);
+      var data = CoreGraphicsInterop.CGDataProviderCopyData(dataProvider);
       if (data == nint.Zero)
         return null;
 
       try
       {
-        var dataPtr = CoreGraphics.CFDataGetBytePtr(data);
-        var dataLength = (int)CoreGraphics.CFDataGetLength(data);
+        var dataPtr = CoreGraphicsInterop.CFDataGetBytePtr(data);
+        var dataLength = (int)CoreGraphicsInterop.CFDataGetLength(data);
 
         if (dataPtr == nint.Zero || dataLength == 0)
           return null;
@@ -77,7 +77,7 @@ internal static class CoreGraphicsHelper
       }
       finally
       {
-        CoreGraphics.CFRelease(data);
+        CoreGraphicsInterop.CFRelease(data);
       }
     }
     catch
@@ -90,19 +90,19 @@ internal static class CoreGraphicsHelper
   {
     if (cgImageRef != nint.Zero)
     {
-      CoreGraphics.CFRelease(cgImageRef);
+      CoreGraphicsInterop.CFRelease(cgImageRef);
     }
   }
 
-  public static CoreGraphics.CGRect ToCGRect(this Rectangle rectangle)
+  public static CoreGraphicsInterop.CGRect ToCGRect(this Rectangle rectangle)
   {
-    return new CoreGraphics.CGRect(
+    return new CoreGraphicsInterop.CGRect(
       rectangle.X,
       rectangle.Y,
       rectangle.Width,
       rectangle.Height);
   }
-  public static Rectangle ToRectangle(this CoreGraphics.CGRect cgRect)
+  public static Rectangle ToRectangle(this CoreGraphicsInterop.CGRect cgRect)
   {
     return new Rectangle(
       (int)cgRect.X,

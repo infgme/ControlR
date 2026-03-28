@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ApplicationIcon>..\.assets\appicon.ico</ApplicationIcon>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <UseAppHost>true</UseAppHost>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <!-- Dependencies for installer -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <!-- Reference shared libraries -->
+  <ItemGroup>
+    <ProjectReference Include="..\ControlR.Agent.Shared\ControlR.Agent.Shared.csproj" />
+    <ProjectReference Include="..\ControlR.ApiClient\ControlR.ApiClient.csproj" />
+    <ProjectReference Include="..\Libraries\ControlR.Libraries.Shared\ControlR.Libraries.Shared.csproj" />
+    <ProjectReference Include="..\Libraries\ControlR.Libraries.Serilog\ControlR.Libraries.Serilog.csproj" />
+  </ItemGroup>
+
+</Project>

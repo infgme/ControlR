@@ -1,7 +1,5 @@
 using Avalonia;
-using Avalonia.Platform;
 using Avalonia.Styling;
-using ControlR.Libraries.Avalonia.Theming;
 
 namespace ControlR.DesktopClient.Services;
 

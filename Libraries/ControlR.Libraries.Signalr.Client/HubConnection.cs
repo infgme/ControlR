@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Security.Cryptography;
+using ControlR.Libraries.Shared.Extensions;
 using ControlR.Libraries.Signalr.Client.Diagnostics;
 using ControlR.Libraries.Signalr.Client.Exceptions;
 using ControlR.Libraries.Signalr.Client.Internals;
@@ -231,7 +232,7 @@ internal sealed class HubConnection<THub, TClient>(
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Failed to initialize hub connection.");
+        _logger.LogErrorDeduped("Failed to initialize hub connection.", exception: ex);
         try
         {
           ConnectThrew?.Invoke(ex);

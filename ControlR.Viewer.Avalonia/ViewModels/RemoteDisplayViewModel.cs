@@ -53,7 +53,7 @@ public interface IRemoteDisplayViewModel : INotifyPropertyChanged, IDisposable
   bool ShowWindowsInputControls { get; }
   ViewMode ViewMode { get; }
 
-  ScopedGuard<SKBitmap?> AcquireCompositedFrame();
+  LockedValueToken<SKBitmap?> AcquireCompositedFrame();
   Task InvokeCtrlAltDel();
   Task RequestClipboardText();
   Task SendClipboardText(string text);
@@ -73,7 +73,7 @@ public sealed partial class RemoteDisplayViewModel : ViewModelBase<RemoteDisplay
   private static readonly IReadOnlyDictionary<string, string> _emptyExtraData = new Dictionary<string, string>();
 
   private readonly IClipboard _clipboard;
-  private readonly ScopedLock<SKBitmap?> _compositedFrame = new(null);
+  private readonly LockedValue<SKBitmap?> _compositedFrame = new(null);
   private readonly IDisposable _messageHandlerRegistration;
   private readonly IMessenger _messenger;
   private readonly IMetricsState _metricsState;
@@ -331,7 +331,7 @@ public sealed partial class RemoteDisplayViewModel : ViewModelBase<RemoteDisplay
     _remoteControlState.CurrentSession?.Device.Platform == SystemPlatform.Windows;
   public ViewMode ViewMode => _remoteControlState.ViewMode;
 
-  public ScopedGuard<SKBitmap?> AcquireCompositedFrame()
+  public LockedValueToken<SKBitmap?> AcquireCompositedFrame()
   {
     return _compositedFrame.Lock();
   }

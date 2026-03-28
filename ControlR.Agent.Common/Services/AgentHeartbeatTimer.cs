@@ -1,4 +1,5 @@
-using ControlR.Agent.Common.Interfaces;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Services;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 

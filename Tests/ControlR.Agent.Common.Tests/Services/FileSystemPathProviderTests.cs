@@ -1,6 +1,6 @@
-using ControlR.Agent.Common.Interfaces;
-using ControlR.Agent.Common.Options;
-using ControlR.Agent.Common.Services;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Options;
+using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Api.Contracts.Enums;
 using ControlR.Libraries.Shared.Helpers;
 using ControlR.Libraries.Shared.Services;
@@ -80,6 +80,74 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
     Setup(platform, instanceId, isElevated, isDebug);
 
     var result = _pathProvider.GetAgentLogsDirectoryPath();
+
+    Assert.Equal(expectedPath, result);
+  }
+
+  [Theory]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Windows, "controlr.test.com", false, true, @"C:\ProgramData\ControlR\Debug\controlr.test.com\.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Linux, "localhost", false, false, "/home/testuser/.controlr/localhost/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.MacOs, null, false, false, "/Users/testuser/.controlr/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.MacOs, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/.controlr-bundle.sha256")]
+  public void GetBundleHashFilePath_ReturnsSettingsDirectoryPath(
+    SystemPlatform platform,
+    string? instanceId,
+    bool isElevated,
+    bool isDebug,
+    string expectedPath)
+  {
+    Setup(platform, instanceId, isElevated, isDebug);
+
+    var result = _pathProvider.GetBundleHashFilePath();
+
+    Assert.Equal(expectedPath, result);
+  }
+
+  [Theory]
+  [InlineData(null, "/Applications/ControlR.app")]
+  [InlineData("controlr.test.com", "/Applications/ControlR.controlr.test.com.app")]
+  public void GetBundleRootDirectory_MacOs_ReturnsInstalledAppBundlePath(string? instanceId, string expectedPath)
+  {
+    Setup(SystemPlatform.MacOs, instanceId);
+
+    var result = _pathProvider.GetBundleRootDirectory();
+
+    Assert.Equal(expectedPath, result);
+  }
+
+  [Theory]
+  [InlineData(null, "/Applications/ControlR.app/Contents/MacOS/ControlR.DesktopClient")]
+  [InlineData("controlr.test.com", "/Applications/ControlR.controlr.test.com.app/Contents/MacOS/ControlR.DesktopClient")]
+  public void GetDesktopExecutablePath_MacOs_ReturnsInstalledAppExecutablePath(string? instanceId, string expectedPath)
+  {
+    Setup(SystemPlatform.MacOs, instanceId);
+
+    var result = _pathProvider.GetDesktopExecutablePath();
+
+    Assert.Equal(expectedPath, result);
+  }
+
+  [Theory]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\Logs\ControlR.Agent.Installer\LogFile.log")]
+  [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\Logs\ControlR.Agent.Installer\LogFile.log")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/logs/ControlR.Agent.Installer/LogFile.log")]
+  [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/var/log/controlr/controlr.test.com/ControlR.Agent.Installer/LogFile.log")]
+  [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/logs/ControlR.Agent.Installer/LogFile.log")]
+  public void GetInstallerLogFilePath_AppendsLogFileName(
+    SystemPlatform platform,
+    string? instanceId,
+    bool isElevated,
+    bool isDebug,
+    string expectedPath)
+  {
+    Setup(platform, instanceId, isElevated, isDebug);
+
+    var result = _pathProvider.GetInstallerLogFilePath();
 
     Assert.Equal(expectedPath, result);
   }

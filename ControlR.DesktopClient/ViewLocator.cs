@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using ControlR.DesktopClient.Common;
 
 namespace ControlR.DesktopClient;
 public class ViewLocator : IDataTemplate

@@ -9,16 +9,14 @@ public partial class CodeView : JsInteropableComponent
 
   [Parameter]
   public string? CodeContent { get; set; }
-
   [Parameter]
   public EventCallback<string?> CodeContentChanged { get; set; }
-
   [Parameter]
   public bool IsEditable { get; set; }
-
   [Parameter]
   public CodeViewLanguage Language { get; set; }
-
+  [Parameter]
+  public bool ScrollToBottomOnLoad { get; set; }
   [Parameter]
   public bool ShowLineBorders { get; set; } = true;
 
@@ -38,9 +36,19 @@ public partial class CodeView : JsInteropableComponent
   {
     await base.OnAfterRenderAsync(firstRender);
 
+    if (!RendererInfo.IsInteractive)
+    {
+      return;
+    }
+
     if (CodeContent != _lastFormattedContent)
     {
+      await WaitForJsModule();
       await JsRuntime.InvokeVoidAsync("Prism.highlightElement", _codeElementRef);
+      if (ScrollToBottomOnLoad)
+      {
+        await JsModule.InvokeVoidAsync("scrollContainerToBottom", _codeElementRef);
+      }
       _lastFormattedContent = CodeContent;
     }
   }

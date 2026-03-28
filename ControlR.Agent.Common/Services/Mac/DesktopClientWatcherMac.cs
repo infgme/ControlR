@@ -1,4 +1,6 @@
-using ControlR.Agent.Common.Interfaces;
+using ControlR.Agent.Shared.Interfaces;
+using ControlR.Agent.Shared.Options;
+using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -10,13 +12,11 @@ internal class DesktopClientWatcherMac(
   IServiceControl serviceControl,
   IProcessManager processManager,
   ISystemEnvironment systemEnvironment,
-  IControlrMutationLock mutationLock,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<DesktopClientWatcherMac> logger) : BackgroundService
 {
   private readonly IOptions<InstanceOptions> _instanceOptions = instanceOptions;
   private readonly ILogger<DesktopClientWatcherMac> _logger = logger;
-  private readonly IControlrMutationLock _mutationLock = mutationLock;
   private readonly IProcessManager _processManager = processManager;
   private readonly IServiceControl _serviceControl = serviceControl;
   private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
@@ -37,8 +37,7 @@ internal class DesktopClientWatcherMac(
       try
       {
         using var dedupeScope = _logger.EnterDedupeScope();
-        using var mutationLock = await _mutationLock.AcquireAsync(stoppingToken);
-        await CheckAndStartDesktopClientServices(stoppingToken);
+          await CheckAndStartDesktopClientServices(stoppingToken);
       }
       catch (OperationCanceledException)
       {

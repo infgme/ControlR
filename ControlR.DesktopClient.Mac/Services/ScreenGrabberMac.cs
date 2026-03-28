@@ -77,7 +77,7 @@ public sealed class ScreenGrabberMac(
           return CaptureResult.Fail($"Invalid display ID: {displays[0].DeviceName}");
         }
 
-        var cgImageRef = CoreGraphics.CGDisplayCreateImage(displayId);
+        var cgImageRef = CoreGraphicsInterop.CGDisplayCreateImage(displayId);
         if (cgImageRef == nint.Zero)
         {
           return CaptureResult.Fail("Failed to create display image.");
@@ -124,7 +124,7 @@ public sealed class ScreenGrabberMac(
           continue;
         }
 
-        var cgImageRef = CoreGraphics.CGDisplayCreateImage(displayId);
+        var cgImageRef = CoreGraphicsInterop.CGDisplayCreateImage(displayId);
         if (cgImageRef == nint.Zero)
         {
           _logger.LogWarning("Failed to create display image for {DisplayId}", display.DeviceName);
@@ -171,24 +171,24 @@ public sealed class ScreenGrabberMac(
 
   private CursorBitmapSnapshot? CaptureCursorSnapshot()
   {
-    using var autoreleasePool = AppKit.CreateAutoreleasePool();
+    using var autoreleasePool = AppKitInterop.CreateAutoreleasePool();
 
-    var cursor = AppKit.GetCurrentCursor();
+    var cursor = AppKitInterop.GetCurrentCursor();
     if (cursor == nint.Zero)
     {
       _logger.LogDebug("Failed to get current cursor from NSCursor");
       return null;
     }
 
-    var nsImage = AppKit.GetCursorImage(cursor);
+    var nsImage = AppKitInterop.GetCursorImage(cursor);
     if (nsImage == nint.Zero)
     {
       _logger.LogDebug("Failed to get cursor image");
       return null;
     }
 
-    var (hotspotX, hotspotY) = AppKit.GetCursorHotspot(cursor);
-    var cgImageRef = AppKit.GetNSImageCGImage(nsImage);
+    var (hotspotX, hotspotY) = AppKitInterop.GetCursorHotspot(cursor);
+    var cgImageRef = AppKitInterop.GetNSImageCGImage(nsImage);
     if (cgImageRef == nint.Zero)
     {
       _logger.LogDebug("Failed to convert NSImage to CGImage");
@@ -215,7 +215,7 @@ public sealed class ScreenGrabberMac(
       }
 
       // Capture the entire display
-      var cgImageRef = CoreGraphics.CGDisplayCreateImage(displayId);
+      var cgImageRef = CoreGraphicsInterop.CGDisplayCreateImage(displayId);
 
       if (cgImageRef == nint.Zero)
       {
@@ -234,7 +234,7 @@ public sealed class ScreenGrabberMac(
 
       if (captureCursor)
       {
-        var bounds = CoreGraphics.CGDisplayBounds(displayId);
+        var bounds = CoreGraphicsInterop.CGDisplayBounds(displayId);
         var boundsRect = new Rectangle(
           (int)(bounds.X * display.CapturePixelsPerLayoutUnit),
           (int)(bounds.Y * display.CapturePixelsPerLayoutUnit),
@@ -256,7 +256,7 @@ public sealed class ScreenGrabberMac(
   {
     try
     {
-      if (!CoreGraphics.CGCursorIsVisible())
+      if (!CoreGraphicsInterop.CGCursorIsVisible())
       {
         return;
       }
@@ -302,16 +302,16 @@ public sealed class ScreenGrabberMac(
     x = 0;
     y = 0;
 
-    var cgEventRef = CoreGraphics.CGEventCreate(nint.Zero);
+    var cgEventRef = CoreGraphicsInterop.CGEventCreate(nint.Zero);
     if (cgEventRef == nint.Zero)
     {
       return false;
     }
 
     using var cgEventDisposer = new CallbackDisposable(
-      () => CoreGraphics.CFRelease(cgEventRef));
+      () => CoreGraphicsInterop.CFRelease(cgEventRef));
 
-    var location = CoreGraphics.CGEventGetLocation(cgEventRef);
+    var location = CoreGraphicsInterop.CGEventGetLocation(cgEventRef);
 
     var unscaledX = (int)Math.Round(location.X);
     var unscaledY = (int)Math.Round(location.Y);
