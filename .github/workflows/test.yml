@@ -41,9 +41,10 @@ jobs:
           clean: true
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "10.0.x"
+        uses: ./.github/actions/setup-dotnet
+
+      - name: Install macOS workload
+        run: dotnet workload install macos
 
       - name: Restore Solution
         run: dotnet restore ControlR.slnx
