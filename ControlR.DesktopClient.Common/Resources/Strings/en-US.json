@@ -42,6 +42,7 @@
   "ChatMessageSendFailureMessage": "Failed to send message",
   "You": "You",
   "Version": "Version",
+  "InstanceId": "Instance ID",
   "Theme": "Theme",
   "Auto": "Auto",
   "Light": "Light",
@@ -89,5 +90,6 @@
   "ViewNotFoundMessage": "View not found: {0}",
   "CouldNotCreateViewMessage": "Could not create view: {0}",
   "UnhandledExceptionMessage": "An unhandled exception occurred.  See the logs for details.",
-  "UnhandledExceptionTitle": "Unhandled Exception"
+  "UnhandledExceptionTitle": "Unhandled Exception",
+  "None": "None"
 }

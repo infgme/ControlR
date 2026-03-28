@@ -63,6 +63,7 @@ public static class Localization
   public static string GetTechSupportTitle => GetString();
   public static string Granted => GetString();
   public static string GrantPermission => GetString();
+  public static string InstanceId => GetString();
   public static string InvalidViewModelTypeMessage => GetString();
   public static string LearnMore => GetString();
   public static string Light => GetString();
@@ -76,6 +77,7 @@ public static class Localization
   public static string NewChatMessageToastTitle => GetString();
   public static string NoActiveConnections => GetString();
   public static string NoMessagesText => GetString();
+  public static string None => GetString();
   public static string NoPermissionsRequired => GetString();
   public static string NoText => GetString();
   public static string NotGranted => GetString();

@@ -1,17 +1,25 @@
 using System.Diagnostics;
+using ControlR.DesktopClient.Common.Options;
+using Microsoft.Extensions.Options;
 
 namespace ControlR.DesktopClient.ViewModels;
 
 public interface IAboutViewModel : IViewModelBase
 {
   string? AppVersion { get; }
+  string? InstanceId { get; }
   IRelayCommand<string> OpenUrlCommand { get; }
 }
 
-public partial class AboutViewModel : ViewModelBase<AboutView>, IAboutViewModel
+public partial class AboutViewModel(
+  IOptionsMonitor<DesktopClientOptions> options) : ViewModelBase<AboutView>, IAboutViewModel
 {
+  private readonly IOptionsMonitor<DesktopClientOptions> _options = options;
+
   [ObservableProperty]
   private string? _appVersion;
+
+  public string? InstanceId => _options.CurrentValue.InstanceId ?? $"({Localization.None.ToLower()})";
 
   protected override async Task OnInitializeAsync()
   {
