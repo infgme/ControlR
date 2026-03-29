@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace ControlR.Agent.Shared.Services;
 
-public interface ISettingsProvider
+public interface IOptionsAccessor
 {
   Guid DeviceId { get; }
   bool DisableAutoUpdate { get; }
@@ -19,12 +19,12 @@ public interface ISettingsProvider
   Task UpdateId(Guid uid);
 }
 
-internal class SettingsProvider(
+internal class OptionsAccessor(
   IFileSystem fileSystem,
   IFileSystemPathProvider fileSystemPathProvider,
   IOptionsMonitor<AgentAppOptions> appOptions,
   IOptionsMonitor<DeveloperOptions> developerOptions,
-  IOptions<InstanceOptions> instanceOptions) : ISettingsProvider
+  IOptions<InstanceOptions> instanceOptions) : IOptionsAccessor
 {
   private readonly IOptionsMonitor<AgentAppOptions> _appOptions = appOptions;
   private readonly IOptionsMonitor<DeveloperOptions> _developerOptions = developerOptions;

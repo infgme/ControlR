@@ -1,5 +1,3 @@
-using ControlR.Agent.Shared.Interfaces;
-using ControlR.Agent.Shared.Services;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 
@@ -15,13 +13,13 @@ internal class AgentHeartbeatTimer(
   IHubConnection<IAgentHub> hubConnection,
   ISystemEnvironment systemEnvironment,
   IDeviceInfoProvider deviceDataGenerator,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   ILogger<AgentHeartbeatTimer> logger) : BackgroundService, IAgentHeartbeatTimer
 {
   private readonly IDeviceInfoProvider _deviceDataGenerator = deviceDataGenerator;
   private readonly IHubConnection<IAgentHub> _hubConnection = hubConnection;
   private readonly ILogger<AgentHeartbeatTimer> _logger = logger;
-  private readonly ISettingsProvider _settingsProvider = settingsProvider;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
   private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
   private readonly TimeProvider _timeProvider = timeProvider;
   
@@ -52,7 +50,7 @@ internal class AgentHeartbeatTimer(
       if (updateResult.Value.Id != device.Id)
       {
         _logger.LogInformation("Device ID changed.  Updating appsettings.");
-        await _settingsProvider.UpdateId(updateResult.Value.Id);
+        await _optionsAccessor.UpdateId(updateResult.Value.Id);
       }
     }
     catch (Exception ex)

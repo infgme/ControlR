@@ -62,7 +62,7 @@ internal static class CommandProvider
       try
       {
         var bridge = host.Services.GetRequiredService<ILegacyInstallerBridge>();
-        var settingsProvider = host.Services.GetRequiredService<ISettingsProvider>();
+        var settingsProvider = host.Services.GetRequiredService<IOptionsAccessor>();
         var serverUri = requestedServerUri ?? settingsProvider.ServerUri;
         var tenantId = parseResult.GetValue(tenantIdOption) ?? settingsProvider.GetRequiredTenantId();
         var deviceId = parseResult.GetValue(deviceIdOption);

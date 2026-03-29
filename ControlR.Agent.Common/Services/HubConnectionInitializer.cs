@@ -7,7 +7,7 @@ namespace ControlR.Agent.Common.Services;
 internal class HubConnectionInitializer(
   IHubConnection<IAgentHub> hubConnection,
   IHostApplicationLifetime appLifetime,
-  ISettingsProvider settings,
+  IOptionsAccessor optionsAccessor,
   IAgentUpdater agentUpdater,
   IAgentHeartbeatTimer agentHeartbeatTimer,
   ILogger<HubConnectionInitializer> logger) : IHostedService
@@ -17,7 +17,7 @@ internal class HubConnectionInitializer(
   private readonly IHostApplicationLifetime _appLifetime = appLifetime;
   private readonly IHubConnection<IAgentHub> _hubConnection = hubConnection;
   private readonly ILogger<HubConnectionInitializer> _logger = logger;
-  private readonly ISettingsProvider _settings = settings;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
 
   public async Task StartAsync(CancellationToken cancellationToken)
   {
@@ -44,7 +44,7 @@ internal class HubConnectionInitializer(
 
   private async Task<bool> Connect(CancellationToken cancellationToken)
   {
-    var hubEndpoint = new Uri(_settings.ServerUri, AppConstants.AgentHubPath);
+    var hubEndpoint = new Uri(_optionsAccessor.ServerUri, AppConstants.AgentHubPath);
 
     var result = await _hubConnection.Connect(
       hubEndpoint,

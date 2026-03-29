@@ -10,9 +10,9 @@ public class DeviceInfoProviderWin(
   IFileSystem fileSystem,
   ISystemEnvironment environmentHelper,
   ICpuUtilizationSampler cpuUtilizationSampler,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   ILogger<DeviceInfoProviderWin> logger)
-  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, settingsProvider, logger), IDeviceInfoProvider
+  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, optionsAccessor, logger), IDeviceInfoProvider
 {
   private readonly ILogger<DeviceInfoProviderWin> _logger = logger;
 

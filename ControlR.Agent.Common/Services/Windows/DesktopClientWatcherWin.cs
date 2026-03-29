@@ -18,7 +18,7 @@ internal class DesktopClientWatcherWin(
   IIpcServerStore ipcServerStore,
   ISystemEnvironment environment,
   IFileSystem fileSystem,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   IDesktopSessionProvider desktopSessionProvider,
   IDesktopClientFileVerifier desktopClientFileVerifier,
   IDesktopClientLaunchTracker launchTracker,
@@ -33,9 +33,9 @@ internal class DesktopClientWatcherWin(
   private readonly IIpcServerStore _ipcServerStore = ipcServerStore;
   private readonly IDesktopClientLaunchTracker _launchTracker = launchTracker;
   private readonly ILogger<DesktopClientWatcherWin> _logger = logger;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
   private readonly IFileSystemPathProvider _pathProvider = pathProvider;
   private readonly IProcessManager _processManager = processManager;
-  private readonly ISettingsProvider _settingsProvider = settingsProvider;
   private readonly TimeProvider _timeProvider = timeProvider;
   private readonly IWaiter _waiter = waiter;
   private readonly IWin32Interop _win32Interop = win32Interop;
@@ -229,7 +229,7 @@ internal class DesktopClientWatcherWin(
       var binaryPath = _pathProvider.GetDesktopExecutablePath();
 
       var result = _win32Interop.CreateInteractiveSystemProcess(
-        $"\"{binaryPath}\" --instance-id {_settingsProvider.InstanceId}",
+        $"\"{binaryPath}\" --instance-id {_optionsAccessor.InstanceId}",
         sessionId,
         true,
         out var process);

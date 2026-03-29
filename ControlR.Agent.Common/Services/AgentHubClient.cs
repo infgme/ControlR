@@ -15,8 +15,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using ControlR.Libraries.Shared.Services.Processes;
 using ControlR.Libraries.Shared.Services.FileSystem;
-using ControlR.Agent.Shared.Interfaces;
-using ControlR.Agent.Shared.Services;
 
 namespace ControlR.Agent.Common.Services;
 
@@ -30,7 +28,7 @@ internal class AgentHubClient(
   IIpcServerStore ipcServerStore,
   IDesktopClientFileVerifier desktopClientFileVerifier,
   IHostApplicationLifetime appLifetime,
-  ISettingsProvider settings,
+  IOptionsAccessor optionsAccessor,
   IProcessManager processManager,
   IPowerControl powerControl,
   ILocalSocketProxy localProxy,
@@ -57,9 +55,9 @@ internal class AgentHubClient(
   private readonly ILocalSocketProxy _localProxy = localProxy;
   private readonly ILogger<AgentHubClient> _logger = logger;
   private readonly IMessenger _messenger = messenger;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
   private readonly IPowerControl _powerControl = powerControl;
   private readonly IProcessManager _processManager = processManager;
-  private readonly ISettingsProvider _settings = settings;
   private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
   private readonly ITerminalStore _terminalStore = terminalStore;
   private readonly IWakeOnLanService _wakeOnLan = wakeOnLan;
@@ -166,9 +164,9 @@ internal class AgentHubClient(
         return HubResult.Fail($"Process with ID {dto.TargetProcessId} is no longer running.");
       }
 
-      var dataFolder = string.IsNullOrWhiteSpace(_settings.InstanceId)
+      var dataFolder = string.IsNullOrWhiteSpace(_optionsAccessor.InstanceId)
         ? "Default"
-        : _settings.InstanceId;
+        : _optionsAccessor.InstanceId;
 
       var ipcDto = new RemoteControlRequestIpcDto(
         dto.SessionId,
@@ -719,7 +717,7 @@ internal class AgentHubClient(
       var psi = new ProcessStartInfo
       {
         FileName = _systemEnvironment.StartupExePath,
-        Arguments = $"uninstall -i {_settings.InstanceId}",
+        Arguments = $"uninstall -i {_optionsAccessor.InstanceId}",
         UseShellExecute = true
       };
       _ = _processManager.Start(psi);

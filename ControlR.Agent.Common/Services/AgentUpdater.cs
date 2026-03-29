@@ -30,7 +30,7 @@ internal class AgentUpdater(
   IFileSystemPathProvider fileSystemPathProvider,
   IProcessManager proessManager,
   ISystemEnvironment environmentHelper,
-  ISettingsProvider settings,
+  IOptionsAccessor optionsAccessor,
   IHostApplicationLifetime appLifetime,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<AgentUpdater> logger) : BackgroundService, IAgentUpdater
@@ -42,14 +42,14 @@ internal class AgentUpdater(
   private readonly IFileSystemPathProvider _fileSystemPathProvider = fileSystemPathProvider;
   private readonly IOptions<InstanceOptions> _instanceOptions = instanceOptions;
   private readonly ILogger<AgentUpdater> _logger = logger;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
   private readonly IProcessManager _processManager = proessManager;
-  private readonly ISettingsProvider _settings = settings;
   private readonly ISystemEnvironment _systemEnvironment = environmentHelper;
   private readonly TimeProvider _timeProvider = timeProvider;
 
   public async Task CheckForUpdate(bool force = false, CancellationToken cancellationToken = default)
   {
-    if (!force && _settings.DisableAutoUpdate)
+    if (!force && _optionsAccessor.DisableAutoUpdate)
     {
       _logger.LogInformation("Auto-update disabled in developer options.  Skipping update check.");
       return;
@@ -116,7 +116,7 @@ internal class AgentUpdater(
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
-    if (_settings.DisableAutoUpdate)
+    if (_optionsAccessor.DisableAutoUpdate)
     {
       _logger.LogInformation("Auto-update disabled in developer options.  Skipping update check timer.");
       return;
@@ -158,8 +158,8 @@ internal class AgentUpdater(
     var arguments = new List<string>
     {
       "install",
-      $"--server-uri {QuoteArgument(_settings.ServerUri.ToString())}",
-      $"--tenant-id {_settings.GetRequiredTenantId()}"
+      $"--server-uri {QuoteArgument(_optionsAccessor.ServerUri.ToString())}",
+      $"--tenant-id {_optionsAccessor.GetRequiredTenantId()}"
     };
 
     if (!string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))

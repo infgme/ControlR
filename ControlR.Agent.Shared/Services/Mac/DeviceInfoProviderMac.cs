@@ -8,9 +8,9 @@ public class DeviceInfoProviderMac(
   IFileSystem fileSystem,
   ISystemEnvironment environmentHelper,
   ICpuUtilizationSampler cpuUtilizationSampler,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   ILogger<DeviceInfoProviderMac> logger)
-  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, settingsProvider, logger), IDeviceInfoProvider
+  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, optionsAccessor, logger), IDeviceInfoProvider
 {
   private readonly ILogger<DeviceInfoProviderMac> _logger = logger;
   private readonly IProcessManager _processService = processInvoker;

@@ -8,9 +8,9 @@ public class DeviceInfoProviderLinux(
   IFileSystem fileSystem,
   ISystemEnvironment environmentHelper,
   ICpuUtilizationSampler cpuUtilizationSampler,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   ILogger<DeviceInfoProviderLinux> logger)
-  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, settingsProvider, logger), IDeviceInfoProvider
+  : DeviceInfoProviderBase(fileSystem, environmentHelper, cpuUtilizationSampler, optionsAccessor, logger), IDeviceInfoProvider
 {
   private readonly ILogger<DeviceInfoProviderLinux> _logger = logger;
   private readonly IProcessManager _processInvoker = processInvoker;

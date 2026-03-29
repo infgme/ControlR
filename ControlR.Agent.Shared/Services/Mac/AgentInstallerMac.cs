@@ -16,13 +16,13 @@ internal class AgentInstallerMac(
   IControlrApi controlrApi,
   IEmbeddedResourceAccessor embeddedResourceAccessor,
   IDeviceInfoProvider deviceDataGenerator,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   IProcessManager processManager,
   IBundleExtractor bundleExtractor,
   IOptionsMonitor<AgentAppOptions> appOptions,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<AgentInstallerMac> logger)
-  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, settingsProvider, processManager, appOptions, logger), IAgentInstaller
+  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAccessor, processManager, appOptions, logger), IAgentInstaller
 {
   private const string MacAgentInstallDirectory = "/Library/Application Support/ControlR";
   private const string MacAppBundleName = "ControlR.app";

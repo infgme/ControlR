@@ -12,7 +12,7 @@ internal abstract class AgentInstallerBase(
   IFileSystemPathProvider fileSystemPathProvider,
   IControlrApi controlrApi,
   IDeviceInfoProvider deviceDataGenerator,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   IProcessManager processManager,
   IOptionsMonitor<AgentAppOptions> appOptions,
   ILogger<AgentInstallerBase> logger)
@@ -20,7 +20,7 @@ internal abstract class AgentInstallerBase(
   private readonly IControlrApi _controlrApi = controlrApi;
   private readonly IDeviceInfoProvider _deviceDataGenerator = deviceDataGenerator;
   private readonly IFileSystemPathProvider _fileSystemPathProvider = fileSystemPathProvider;
-  private readonly ISettingsProvider _settingsProvider = settingsProvider;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
 
   protected IOptionsMonitor<AgentAppOptions> AppOptions { get; } = appOptions;
   protected IFileSystem FileSystem { get; } = fileSystem;
@@ -203,7 +203,7 @@ internal abstract class AgentInstallerBase(
     }
 
     Logger.LogInformation("Writing results to disk.");
-    await _settingsProvider.UpdateAppOptions(currentOptions);
+    await _optionsAccessor.UpdateAppOptions(currentOptions);
   }
 
   protected async Task WriteBundleHashFile(string? bundleSha256)

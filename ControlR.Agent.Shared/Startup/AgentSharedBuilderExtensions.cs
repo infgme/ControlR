@@ -20,7 +20,7 @@ public static class AgentSharedBuilderExtensions
 {
   public static IServiceCollection AddAgentSharedServices(this IServiceCollection services)
   {
-    services.AddSingleton<ISettingsProvider, SettingsProvider>();
+    services.AddSingleton<IOptionsAccessor, OptionsAccessor>();
     services.AddSingleton<IFileSystemPathProvider, FileSystemPathProvider>();
     services.AddSingleton<IBundleExtractor, BundleExtractor>();
 

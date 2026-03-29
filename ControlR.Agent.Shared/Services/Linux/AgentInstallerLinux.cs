@@ -18,7 +18,7 @@ internal class AgentInstallerLinux(
   IControlrApi controlrApi,
   IDeviceInfoProvider deviceDataGenerator,
   IRetryer retryer,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAcccessor,
   IElevationChecker elevationChecker,
   IServiceControl serviceControl,
   IEmbeddedResourceAccessor embeddedResourceAccessor,
@@ -26,7 +26,7 @@ internal class AgentInstallerLinux(
   IOptionsMonitor<AgentAppOptions> appOptions,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<AgentInstallerLinux> logger)
-  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, settingsProvider, processManager, appOptions, logger), IAgentInstaller
+  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAcccessor, processManager, appOptions, logger), IAgentInstaller
 {
   private static readonly SemaphoreSlim _installLock = new(1, 1);
 

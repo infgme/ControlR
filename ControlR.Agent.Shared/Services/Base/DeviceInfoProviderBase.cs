@@ -11,14 +11,14 @@ public class DeviceInfoProviderBase(
   IFileSystem fileSystem,
   ISystemEnvironment systemEnvironment,
   ICpuUtilizationSampler cpuSampler,
-  ISettingsProvider settingsProvider,
+  IOptionsAccessor optionsAccessor,
   ILogger<DeviceInfoProviderBase> logger)
 {
  
   private readonly ICpuUtilizationSampler _cpuSampler = cpuSampler;
   private readonly IFileSystem _fileSystem = fileSystem;
   private readonly ILogger<DeviceInfoProviderBase> _logger = logger;
-  private readonly ISettingsProvider _settingsProvider = settingsProvider;
+  private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
   private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
 
   protected DeviceUpdateRequestDto CreateDeviceBase(
@@ -31,8 +31,8 @@ public class DeviceInfoProviderBase(
     string agentVersion)
   {
     return new DeviceUpdateRequestDto(
-      Id: _settingsProvider.DeviceId,
-      TenantId: _settingsProvider.TenantId,
+      Id: _optionsAccessor.DeviceId,
+      TenantId: _optionsAccessor.TenantId,
       Name: _systemEnvironment.MachineName,
       AgentVersion: agentVersion,
       Is64Bit: _systemEnvironment.Is64Bit,
