@@ -1,9 +1,9 @@
 using ControlR.Agent.Shared.Options;
 using ControlR.Agent.Shared.Services;
-using ControlR.Libraries.Api.Contracts.Constants;
 
 namespace ControlR.Agent.LoadTester;
-internal class FakeSettingsProvider(Guid deviceId, Uri serverUri) : ISettingsProvider
+
+internal class FakeSettingsProvider(Guid deviceId, Uri serverUri) : IOptionsAccessor
 {
   public Guid DeviceId => deviceId;
 
@@ -13,7 +13,7 @@ internal class FakeSettingsProvider(Guid deviceId, Uri serverUri) : ISettingsPro
 
   public Uri ServerUri { get; } = serverUri;
 
-  public Guid TenantId => default;
+  public Guid TenantId { get; } = Guid.NewGuid();
 
   public string GetAppSettingsPath()
   {
@@ -22,7 +22,7 @@ internal class FakeSettingsProvider(Guid deviceId, Uri serverUri) : ISettingsPro
 
   public Guid GetRequiredTenantId()
   {
-    return Guid.NewGuid();
+    return TenantId;
   }
 
   public Task UpdateAppOptions(AgentAppOptions options)

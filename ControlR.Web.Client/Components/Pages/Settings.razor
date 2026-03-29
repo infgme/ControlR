@@ -4,8 +4,8 @@
 @attribute [Authorize]
 
 @inject ISnackbar Snackbar
-@inject IUserSettingsProvider UserSettings
-@inject ITenantSettingsProvider TenantSettings
+@inject IEffectiveUserPreferences EffectiveUserPreferences
+@inject IUserPreferencesProvider UserPreferences
 @inject IClipboardManager ClipboardManager
 @inject AuthenticationStateProvider AuthState
 @inject IMessenger Messenger
@@ -65,11 +65,11 @@
     Show Notification to User
   </MudText>
   
-  @if (_tenantNotifySetting.HasValue)
+  @if (_isNotifyUserEnforced)
   {
     <MudAlert Severity="Severity.Info" Class="mb-3">
       This setting is being enforced by your tenant administrator.
-      @if (_tenantNotifySetting.Value)
+      @if (_notifyUser)
       {
         <text>Users will always be notified when remote control sessions start.</text>
       }
@@ -83,7 +83,7 @@
   <MudCheckBox T="bool"
                @bind-Value:get="_notifyUser"
                @bind-Value:set="SetNotifyUser"
-               Disabled="_tenantNotifySetting.HasValue"
+               Disabled="_isNotifyUserEnforced"
                Label="Notify users when a remote control session starts" />
 </div>
 
@@ -162,10 +162,10 @@
 @code {
 
   private bool _notifyUser;
+  private bool _isNotifyUserEnforced;
   private string _userDisplayName = "";
   private Guid? _tenantId;
   private Guid? _userId;
-  private bool? _tenantNotifySetting;
   private ThemeMode _themeMode = ThemeMode.Auto;
   private KeyboardInputMode _keyboardInputMode = KeyboardInputMode.Auto;
   private ViewMode _viewMode = ViewMode.Fit;
@@ -183,20 +183,13 @@
       _userId = userId;
     }
 
-    // Check if tenant has enforced the notify user setting
-    _tenantNotifySetting = await TenantSettings.GetNotifyUserOnSessionStart();
-
-    _notifyUser = await UserSettings.GetNotifyUserOnSessionStart();
-    _userDisplayName = await UserSettings.GetUserDisplayName();
-    _themeMode = await UserSettings.GetThemeMode();
-    _keyboardInputMode = await UserSettings.GetKeyboardInputMode();
-    _viewMode = await UserSettings.GetViewMode();
-
-    // If tenant setting is enforced, override the user setting display
-    if (_tenantNotifySetting.HasValue)
-    {
-      _notifyUser = _tenantNotifySetting.Value;
-    }
+    var notifyUserPreference = await EffectiveUserPreferences.GetNotifyUserOnSessionStart();
+    _notifyUser = notifyUserPreference.Value;
+    _isNotifyUserEnforced = notifyUserPreference.IsTenantEnforced;
+    _userDisplayName = await UserPreferences.GetUserDisplayName();
+    _themeMode = await UserPreferences.GetThemeMode();
+    _keyboardInputMode = await UserPreferences.GetKeyboardInputMode();
+    _viewMode = await UserPreferences.GetViewMode();
 
     await base.OnInitializedAsync();
   }
@@ -215,20 +208,19 @@
 
   private async Task SetNotifyUser(bool value)
   {
-    // Don't allow changes if tenant setting is enforced
-    if (_tenantNotifySetting.HasValue)
+    if (_isNotifyUserEnforced)
     {
       return;
     }
     
     _notifyUser = value;
-    await UserSettings.SetNotifyUserOnSessionStart(value);
+    await UserPreferences.SetNotifyUserOnSessionStart(value);
   }
 
   private async Task SetThemeMode(ThemeMode value)
   {
     _themeMode = value;
-    await UserSettings.SetThemeMode(value);
+    await UserPreferences.SetThemeMode(value);
     await Messenger.Send(new ThemeChangedMessage(value));
     Snackbar.Add("Theme updated", Severity.Success);
   }
@@ -236,21 +228,21 @@
   private async Task SetKeyboardInputMode(KeyboardInputMode value)
   {
     _keyboardInputMode = value;
-    await UserSettings.SetKeyboardInputMode(value);
+    await UserPreferences.SetKeyboardInputMode(value);
     Snackbar.Add("Keyboard input mode updated", Severity.Success);
   }
 
   private async Task SetUserDisplayName(string value)
   {
     _userDisplayName = value;
-    await UserSettings.SetUserDisplayName(value);
+    await UserPreferences.SetUserDisplayName(value);
     Snackbar.Add("Display name updated", Severity.Success);
   }
 
   private async Task SetViewMode(ViewMode value)
   {
     _viewMode = value;
-    await UserSettings.SetViewMode(value);
+    await UserPreferences.SetViewMode(value);
     Snackbar.Add("View mode updated", Severity.Success);
   }
 

@@ -65,7 +65,7 @@ public static class HostRunner
 
       builder.Services.ReplaceService<IAgentUpdater, FakeAgentUpdater>(ServiceLifetime.Singleton);
       builder.Services.ReplaceService<ICpuUtilizationSampler, FakeCpuUtilizationSampler>(ServiceLifetime.Singleton);
-      builder.Services.ReplaceService<ISettingsProvider, FakeSettingsProvider>(ServiceLifetime.Singleton, new FakeSettingsProvider(deviceId, serverUri));
+      builder.Services.ReplaceService<IOptionsAccessor, FakeSettingsProvider>(ServiceLifetime.Singleton, new FakeSettingsProvider(deviceId, serverUri));
       builder.Services.RemoveImplementation<IpcServerWatcher>();
       builder.Services.RemoveImplementation<AgentHeartbeatTimer>();
 

@@ -7,6 +7,7 @@ namespace ControlR.Web.Client.Components.Pages;
 public partial class Deploy
 {
   private bool _addTags;
+  private bool _appendInstanceId = true;
   private string? _deviceId;
   private IEnumerable<AgentInstallerKeyDto> _existingKeys = [];
   private string? _existingKeySecretInput;
@@ -16,6 +17,7 @@ public partial class Deploy
   private Guid? _installerKeyId;
   private string? _installerKeySecret;
   private InstallerKeyType _installerKeyType;
+  private string? _instanceId;
   private string? _keyExpiration;
   private AgentInstallerKeyDto? _selectedExistingKey;
   private IEnumerable<TagResponseDto>? _selectedTags;
@@ -34,6 +36,8 @@ public partial class Deploy
   public required NavigationManager NavMan { get; init; }
   [Inject]
   public required ISnackbar Snackbar { get; init; }
+  [Inject]
+  public required ITenantSettingsProvider TenantSettingsProvider { get; init; }
   [Inject]
   public required TimeProvider TimeProvider { get; init; }
 
@@ -121,6 +125,9 @@ public partial class Deploy
     {
       _tenantId = tenantId;
     }
+
+    _appendInstanceId = await TenantSettingsProvider.GetAppendInstanceId();
+    _instanceId = await TenantSettingsProvider.GetInstanceId();
 
     var result = await ControlrApi.UserTags.GetAllowedTags();
     if (result.IsSuccess)
@@ -294,7 +301,12 @@ public partial class Deploy
   private string GetCommonArgs()
   {
     var serverUri = GetServerUri();
-    var args = $"-s {serverUri} -i {serverUri.Authority} -t {_tenantId} -ks {_installerKeySecret}";
+    var args = $"-s {serverUri} -t {_tenantId} -ks {_installerKeySecret}";
+
+    if (GetEffectiveInstanceId() is { } instanceId)
+    {
+      args += $" -i {instanceId}";
+    }
 
     if (_installerKeyId.HasValue)
     {
@@ -315,6 +327,21 @@ public partial class Deploy
     args += $" -g {tags}";
 
     return args;
+  }
+
+  private string? GetEffectiveInstanceId()
+  {
+    if (!_appendInstanceId)
+    {
+      return null;
+    }
+
+    if (!string.IsNullOrWhiteSpace(_instanceId))
+    {
+      return _instanceId;
+    }
+
+    return GetServerUri().Host;
   }
 
   private string GetInstallerKeyDisplay(AgentInstallerKeyDto? key)

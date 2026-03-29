@@ -172,7 +172,7 @@ public class AgentUpdaterTests
     public Mock<IHostApplicationLifetime> HostApplicationLifetime { get; } = new();
     public Mock<IFileSystemPathProvider> PathProvider { get; } = new();
     public Mock<IProcessManager> ProcessManager { get; } = new();
-    public Mock<ISettingsProvider> SettingsProvider { get; } = new();
+    public Mock<IOptionsAccessor> SettingsProvider { get; } = new();
     public Mock<ISystemEnvironment> SystemEnvironment { get; } = new();
 
     public AgentUpdater CreateUpdater()

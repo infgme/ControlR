@@ -24,7 +24,7 @@ public abstract class BaseLayout : LayoutComponentBase, IAsyncDisposable
   [Inject]
   public required ILazyInjector<ISnackbar> Snackbar { get; set; }
   [Inject]
-  public required IUserSettingsProvider UserSettings { get; set; }
+  public required IUserPreferencesProvider UserPreferences { get; set; }
 
   protected Palette CurrentPalette => IsDarkMode
       ? CustomTheme.PaletteDark
@@ -96,7 +96,7 @@ public abstract class BaseLayout : LayoutComponentBase, IAsyncDisposable
       // No persisted state, this is SSR or first load
       if (IsAuthenticated)
       {
-        CurrentThemeMode = await UserSettings.GetThemeMode();
+        CurrentThemeMode = await UserPreferences.GetThemeMode();
       }
       await UpdateIsDarkMode();
 
@@ -111,7 +111,7 @@ public abstract class BaseLayout : LayoutComponentBase, IAsyncDisposable
       // Still need to load theme mode
       if (IsAuthenticated)
       {
-        CurrentThemeMode = await UserSettings.GetThemeMode();
+        CurrentThemeMode = await UserPreferences.GetThemeMode();
       }
     }
 

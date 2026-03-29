@@ -1,12 +1,13 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using ControlR.Libraries.Api.Contracts.Constants;
 using ControlR.Libraries.Api.Contracts.Dtos.Devices;
 using ControlR.Libraries.Api.Contracts.Dtos.HubDtos;
 using ControlR.Libraries.Api.Contracts.Dtos.HubDtos.PwshCommandCompletions;
 using ControlR.Libraries.Shared.Helpers;
 using ControlR.Libraries.Api.Contracts.Hubs.Clients;
+using ControlR.Web.Server.Services.Users;
 using Microsoft.AspNetCore.SignalR;
-using ControlR.Web.Client.Constants;
 
 namespace ControlR.Web.Server.Hubs;
 
@@ -16,6 +17,7 @@ public class ViewerHub(
   AppDb appDb,
   IAuthorizationService authorizationService,
   IHubContext<AgentHub, IAgentHubClient> agentHub,
+  IEffectiveUserPreferencesResolver effectiveUserPreferencesResolver,
   IHubStreamStore hubStreamStore,
   IOptionsMonitor<AppOptions> appOptions,
   ILogger<ViewerHub> logger)
@@ -25,6 +27,7 @@ public class ViewerHub(
   private readonly AppDb _appDb = appDb;
   private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
   private readonly IAuthorizationService _authorizationService = authorizationService;
+  private readonly IEffectiveUserPreferencesResolver _effectiveUserPreferencesResolver = effectiveUserPreferencesResolver;
   private readonly IHubStreamStore _hubStreamStore = hubStreamStore;
   private readonly ILogger<ViewerHub> _logger = logger;
   private readonly UserManager<AppUser> _userManager = userManager;
@@ -330,17 +333,14 @@ public class ViewerHub(
       }
 
       var device = authResult.Value;
-
-      var notifyUserSetting =
-        _appDb.TenantSettings.FirstOrDefault(x => x.Name == TenantSettingsNames.NotifyUserOnSessionStart);
-      if (notifyUserSetting is not null &&
-          bool.TryParse(notifyUserSetting.Value, out var notifyUser))
-      {
-        sessionRequestDto = sessionRequestDto with { NotifyUserOnSessionStart = notifyUser };
-      }
+      var notifyUser = await _effectiveUserPreferencesResolver.GetNotifyUserOnSessionStart(
+        device.TenantId,
+        userId,
+        Context.ConnectionAborted);
 
       sessionRequestDto = sessionRequestDto with
       {
+        NotifyUserOnSessionStart = notifyUser,
         ViewerName = displayName,
         ViewerConnectionId = Context.ConnectionId
       };
@@ -386,6 +386,11 @@ public class ViewerHub(
         return HubResult.Fail("User not found.");
       }
 
+      var notifyUser = await _effectiveUserPreferencesResolver.GetNotifyUserOnSessionStart(
+        authResult.Value.TenantId,
+        userId,
+        Context.ConnectionAborted);
+
       var displayName = user.UserPreferences
         ?.FirstOrDefault(x => x.Name == UserPreferenceNames.UserDisplayName)
         ?.Value;
@@ -407,6 +412,7 @@ public class ViewerHub(
 
       sessionRequestDto = sessionRequestDto with 
       { 
+        NotifyUserOnSessionStart = notifyUser,
         ViewerConnectionId = Context.ConnectionId,
         ViewerName = displayName,
       };

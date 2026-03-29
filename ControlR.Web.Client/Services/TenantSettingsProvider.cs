@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
 using System.Net;
-using ControlR.Web.Client.Constants;
+using ControlR.Libraries.Shared.DataValidation;
 
 namespace ControlR.Web.Client.Services;
 
 public interface ITenantSettingsProvider
 {
+  Task<bool> GetAppendInstanceId();
+  Task<string?> GetInstanceId();
   Task<bool?> GetNotifyUserOnSessionStart();
+  Task SetAppendInstanceId(bool value);
+  Task<bool> SetInstanceId(string? value);
   Task SetNotifyUserOnSessionStart(bool? value);
 }
 
@@ -21,14 +25,48 @@ internal class TenantSettingsProvider(
   private readonly ConcurrentDictionary<string, object?> _settings = new();
   private readonly ISnackbar _snackbar = snackbar;
 
+  public async Task<bool> GetAppendInstanceId()
+  {
+    return await GetSetting(TenantSettingNames.AppendInstanceId, false);
+  }
+
+  public async Task<string?> GetInstanceId()
+  {
+    return await GetSetting<string?>(TenantSettingNames.InstanceId, null);
+  }
+
   public async Task<bool?> GetNotifyUserOnSessionStart()
   {
-    return await GetSetting(TenantSettingsNames.NotifyUserOnSessionStart, (bool?)null);
+    return await GetSetting(TenantSettingNames.NotifyUserOnSessionStart, (bool?)null);
+  }
+
+  public async Task SetAppendInstanceId(bool value)
+  {
+    await SetSetting(TenantSettingNames.AppendInstanceId, value);
+  }
+
+  public async Task<bool> SetInstanceId(string? value)
+  {
+    var normalizedValue = string.IsNullOrWhiteSpace(value)
+      ? null
+      : value.Trim();
+
+    if (!string.IsNullOrWhiteSpace(normalizedValue) &&
+        !Validators.ValidateInstanceId(normalizedValue, out var illegalCharacters))
+    {
+      var message = $"Instance ID contains one or more invalid characters: {string.Join(", ", illegalCharacters)}";
+      _logger.LogWarning("Rejected invalid instance ID. Invalid characters: {IllegalCharacters}", string.Join(", ", illegalCharacters));
+      _snackbar.Add(message, Severity.Error);
+      return false;
+    }
+
+    await SetSetting(TenantSettingNames.InstanceId, normalizedValue);
+    return true;
   }
 
   public async Task SetNotifyUserOnSessionStart(bool? value)
   {
-    await SetSetting(TenantSettingsNames.NotifyUserOnSessionStart, value);
+    await SetSetting(TenantSettingNames.NotifyUserOnSessionStart, value);
   }
 
   private async Task<T> GetSetting<T>(string settingName, T defaultValue)

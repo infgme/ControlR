@@ -1,0 +1,178 @@
+using ControlR.Libraries.Api.Contracts.Constants;
+using ControlR.Libraries.Api.Contracts.Dtos.ServerApi;
+using ControlR.Web.Server.Data;
+using ControlR.Web.Server.Data.Entities;
+using ControlR.Web.Server.Primitives;
+using ControlR.Web.Server.Services;
+using ControlR.Web.Server.Tests.Helpers;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace ControlR.Web.Server.Tests;
+
+public class TenantSettingsManagerTests(ITestOutputHelper testOutput) : IAsyncLifetime
+{
+  private readonly ITestOutputHelper _testOutput = testOutput;
+
+  private ITenantSettingsManager _tenantSettingsManager = null!;
+  private TestApp _testApp = null!;
+
+  public async ValueTask DisposeAsync()
+  {
+    await _testApp.DisposeAsync();
+  }
+
+  public async ValueTask InitializeAsync()
+  {
+    _testApp = await TestAppBuilder.CreateTestApp(_testOutput, testDatabaseName: $"{Guid.NewGuid()}");
+    _tenantSettingsManager = _testApp.Services.GetRequiredService<ITenantSettingsManager>();
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenAppendInstanceIdValueIsInvalid_ReturnsValidationFailed()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.AppendInstanceId, "not-a-bool"),
+      cancellationToken);
+
+    Assert.False(result.IsSuccess);
+    Assert.Equal(HttpResultErrorCode.ValidationFailed, result.ErrorCode);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenInstanceIdIsWhitespace_RemovesExistingSetting()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    await using (var arrangeScope = _testApp.Services.CreateAsyncScope())
+    {
+      var db = arrangeScope.ServiceProvider.GetRequiredService<AppDb>();
+      db.TenantSettings.Add(new TenantSetting
+      {
+        Name = TenantSettingNames.InstanceId,
+        TenantId = tenant.Id,
+        Value = "existing-instance"
+      });
+      await db.SaveChangesAsync(cancellationToken);
+    }
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.InstanceId, "   "),
+      cancellationToken);
+
+    Assert.True(result.IsSuccess);
+    Assert.NotNull(result.Value);
+    Assert.Null(result.Value.Value);
+
+    await using var assertScope = _testApp.Services.CreateAsyncScope();
+    var assertDb = assertScope.ServiceProvider.GetRequiredService<AppDb>();
+    var storedSetting = await assertDb.TenantSettings
+      .FirstOrDefaultAsync(x => x.TenantId == tenant.Id && x.Name == TenantSettingNames.InstanceId, cancellationToken);
+
+    Assert.Null(storedSetting);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenInstanceIdValueIsInvalid_ReturnsValidationFailed()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.InstanceId, "bad id"),
+      cancellationToken);
+
+    Assert.False(result.IsSuccess);
+    Assert.Equal(HttpResultErrorCode.ValidationFailed, result.ErrorCode);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenNotifyUserOnSessionStartValueIsInvalid_ReturnsValidationFailed()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.NotifyUserOnSessionStart, "not-a-bool"),
+      cancellationToken);
+
+    Assert.False(result.IsSuccess);
+    Assert.Equal(HttpResultErrorCode.ValidationFailed, result.ErrorCode);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenSettingExists_UpdatesExistingValue()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.AppendInstanceId, bool.TrueString),
+      cancellationToken);
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.AppendInstanceId, bool.FalseString),
+      cancellationToken);
+
+    Assert.True(result.IsSuccess);
+    Assert.NotNull(result.Value);
+    Assert.Equal(bool.FalseString, result.Value.Value);
+
+    await using var assertScope = _testApp.Services.CreateAsyncScope();
+    var assertDb = assertScope.ServiceProvider.GetRequiredService<AppDb>();
+    var storedSettings = await assertDb.TenantSettings
+      .Where(x => x.TenantId == tenant.Id && x.Name == TenantSettingNames.AppendInstanceId)
+      .ToListAsync(cancellationToken);
+
+    Assert.Single(storedSettings);
+    Assert.Equal(bool.FalseString, storedSettings[0].Value);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenSettingIsValid_CreatesSetting()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.InstanceId, "server-alpha"),
+      cancellationToken);
+
+    Assert.True(result.IsSuccess);
+    Assert.NotNull(result.Value);
+    Assert.Equal("server-alpha", result.Value.Value);
+
+    await using var assertScope = _testApp.Services.CreateAsyncScope();
+    var assertDb = assertScope.ServiceProvider.GetRequiredService<AppDb>();
+    var storedSetting = await assertDb.TenantSettings
+      .FirstOrDefaultAsync(x => x.TenantId == tenant.Id && x.Name == TenantSettingNames.InstanceId, cancellationToken);
+
+    Assert.NotNull(storedSetting);
+    Assert.Equal("server-alpha", storedSetting.Value);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenTenantDoesNotExist_ReturnsNotFound()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var result = await _tenantSettingsManager.SetSetting(
+      Guid.NewGuid(),
+      new TenantSettingRequestDto(TenantSettingNames.InstanceId, "server-alpha"),
+      cancellationToken);
+
+    Assert.False(result.IsSuccess);
+    Assert.Equal(HttpResultErrorCode.NotFound, result.ErrorCode);
+  }
+}

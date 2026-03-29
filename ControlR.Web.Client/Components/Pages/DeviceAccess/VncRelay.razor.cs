@@ -1,4 +1,5 @@
 using ControlR.Libraries.Api.Contracts.Dtos.RemoteControlDtos;
+using ControlR.Web.Client.Models;
 using ControlR.Libraries.Viewer.Common.State;
 using ControlR.Libraries.WebSocketRelay.Client;
 using Microsoft.AspNetCore.Components;
@@ -15,15 +16,13 @@ public partial class VncRelay
   [Inject]
   public required IDeviceState DeviceAccessState { get; init; }
   [Inject]
+  public required IEffectiveUserPreferences EffectiveUserPreferences { get; init; }
+  [Inject]
   public required ILogger<VncRelay> Logger { get; init; }
   [Inject]
   public required NavigationManager NavManager { get; init; }
   [Inject]
   public required ISnackbar Snackbar { get; init; }
-  [Inject]
-  public required ITenantSettingsProvider TenantSettings { get; init; }
-  [Inject]
-  public required IUserSettingsProvider UserSettings { get; init; }
   [Inject]
   public required IHubConnection<IViewerHub> ViewerHub { get; init; }
 
@@ -83,8 +82,7 @@ public partial class VncRelay
       Logger.LogInformation("Resolved NoVNC relay URI: {NoVncUri}", _noVncUri);
       Logger.LogInformation("Creating streaming session.");
 
-      var tenantNotifyUser = await TenantSettings.GetNotifyUserOnSessionStart();
-      var notifyUser = tenantNotifyUser ?? await UserSettings.GetNotifyUserOnSessionStart();
+      var notifyUserPreference = await EffectiveUserPreferences.GetNotifyUserOnSessionStart();
 
       var deviceRelayUri = RelayUriBuilder.Build(
           baseUri: serverUri.ToWebsocketUri(),
@@ -101,7 +99,7 @@ public partial class VncRelay
           deviceRelayUri,
           ViewerHub.ConnectionId ?? string.Empty,
           device.Id,
-          notifyUser,
+          notifyUserPreference.Value,
           _port);
 
       var sessionResult = await ViewerHub.Server.RequestVncSession(device.Id, requestDto);

@@ -6,9 +6,10 @@ namespace ControlR.Web.Server.Api;
 [Route(HttpConstants.TenantSettingsEndpoint)]
 [ApiController]
 [Authorize]
-public class TenantSettingsController(AppDb appDb) : ControllerBase
+public class TenantSettingsController(AppDb appDb, ITenantSettingsManager tenantSettingsManager) : ControllerBase
 {
   private readonly AppDb _appDb = appDb;
+  private readonly ITenantSettingsManager _tenantSettingsManager = tenantSettingsManager;
 
   [HttpDelete("{name}")]
   [Authorize(Roles = RoleNames.TenantAdministrator)]
@@ -104,36 +105,7 @@ public class TenantSettingsController(AppDb appDb) : ControllerBase
       return Unauthorized();
     }
 
-    var tenant = await _appDb.Tenants
-      .Include(x => x.TenantSettings)
-      .FirstOrDefaultAsync(x => x.Id == tenantId);
-
-    if (tenant is null)
-    {
-      return NotFound();
-    }
-
-    var entity = new TenantSetting()
-    {
-      Name = setting.Name,
-      Value = setting.Value,
-      TenantId = tenantId
-    };
-
-    tenant.TenantSettings ??= [];
-
-    var index = tenant.TenantSettings.FindIndex(x => x.Name == setting.Name);
-
-    if (index >= 0)
-    {
-      tenant.TenantSettings[index] = entity;
-    }
-    else
-    {
-      tenant.TenantSettings.Add(entity);
-    }
-
-    await _appDb.SaveChangesAsync();
-    return entity.ToDto();
+    var result = await _tenantSettingsManager.SetSetting(tenantId, setting);
+    return result.ToActionResult();
   }
 }

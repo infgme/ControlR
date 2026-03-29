@@ -22,6 +22,8 @@ public partial class RemoteControl : ViewportAwareComponent
   [Inject]
   public required IDialogService DialogService { get; init; }
   [Inject]
+  public required IEffectiveUserPreferences EffectiveUserPreferences { get; init; }
+  [Inject]
   public required ILogger<RemoteControl> Logger { get; init; }
   [Inject]
   public required NavigationManager NavManager { get; init; }
@@ -33,8 +35,6 @@ public partial class RemoteControl : ViewportAwareComponent
   public required IScreenWake ScreenWake { get; init; }
   [Inject]
   public required ISnackbar Snackbar { get; init; }
-  [Inject]
-  public required IUserSettingsProvider UserSettings { get; init; }
   [Inject]
   public required IHubConnection<IViewerHub> ViewerHub { get; init; }
   [Inject]
@@ -352,14 +352,14 @@ public partial class RemoteControl : ViewportAwareComponent
         Snackbar.Add($"Starting remote control in system session {desktopSession.SystemSessionId}", Severity.Info);
       }
 
-      var notifyUser = await UserSettings.GetNotifyUserOnSessionStart();
+      var notifyUserPreference = await EffectiveUserPreferences.GetNotifyUserOnSessionStart();
       var requestDto = new RemoteControlSessionRequestDto(
         session.SessionId,
         desktopRelayUri,
         session.TargetSystemSession,
         session.TargetProcessId,
         session.Device.Id,
-        notifyUser,
+        notifyUserPreference.Value,
         RequireConsent: false);
 
       var remoteControlSessionResult = await ViewerHub.Server.RequestRemoteControlSession(session.Device.Id, requestDto);

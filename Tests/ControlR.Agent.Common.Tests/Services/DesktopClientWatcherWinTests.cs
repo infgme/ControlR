@@ -28,7 +28,7 @@ public class DesktopClientWatcherWinTests
   private readonly Mock<ILogger<DesktopClientWatcherWin>> _logger = new();
   private readonly Mock<IFileSystemPathProvider> _pathProvider = new();
   private readonly Mock<IProcessManager> _processManager = new();
-  private readonly Mock<ISettingsProvider> _settingsProvider = new();
+  private readonly Mock<IOptionsAccessor> _settingsProvider = new();
   private readonly FakeTimeProvider _timeProvider = new(DateTimeOffset.UtcNow);
   private readonly Mock<IWaiter> _waiter = new();
   private readonly Mock<IWin32Interop> _win32Interop = new();

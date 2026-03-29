@@ -31,15 +31,87 @@
       Never notify users
     </MudRadio>
   </MudRadioGroup>
+
+  <div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+      Instance ID
+    </MudText>
+    <MudText Typo="Typo.body2" Class="mb-3">
+      If enabled, the instance ID will be used for agent installations, allowing multiple agents from different servers to be installed on the same machine.
+    </MudText>
+
+    <MudCheckBox T="bool"
+                 @bind-Value:get="_appendInstanceId"
+                 @bind-Value:set="SetAppendInstanceId"
+                 Label="Append instance ID to agent installations" />
+
+    <MudTextField T="string"
+                  @bind-Value="_instanceId"
+                  Immediate="true"
+                  Validation="@(new Func<string?, string?>(InstanceIdValidator))"
+                  OnBlur="SaveInstanceIdOnBlur"
+                  Label="Instance ID"
+                  Placeholder="If empty, defaults to this server's hostname."
+                  Class="mt-3" />
+  </div>
 </div>
 
 @code {
+  private bool _appendInstanceId = true;
+  private string? _instanceId;
   private bool? _notifyUser;
 
   protected override async Task OnInitializedAsync()
   {
     _notifyUser = await TenantSettingsProvider.GetNotifyUserOnSessionStart();
+    _appendInstanceId = await TenantSettingsProvider.GetAppendInstanceId();
+    _instanceId = await TenantSettingsProvider.GetInstanceId();
     await base.OnInitializedAsync();
+  }
+
+  private static string? InstanceIdValidator(string? value)
+  {
+    var trimmedValue = value?.Trim();
+
+    if (string.IsNullOrWhiteSpace(trimmedValue))
+    {
+      return null;
+    }
+
+    return SharedValidators.ValidateInstanceId(trimmedValue, out var illegalCharacters)
+      ? null
+      : $"Instance ID contains one or more invalid characters: {string.Join(", ", illegalCharacters)}";
+  }
+
+  private async Task SaveInstanceIdOnBlur(FocusEventArgs _)
+  {
+    await SaveInstanceId();
+  }
+
+  private async Task SaveInstanceId()
+  {
+    var validationMessage = InstanceIdValidator(_instanceId);
+    if (validationMessage is not null)
+    {
+      Snackbar.Add(validationMessage, Severity.Error);
+      return;
+    }
+
+    _instanceId = string.IsNullOrWhiteSpace(_instanceId)
+      ? null
+      : _instanceId.Trim();
+
+    if (await TenantSettingsProvider.SetInstanceId(_instanceId))
+    {
+      Snackbar.Add("Setting updated", Severity.Success);
+    }
+  }
+
+  private async Task SetAppendInstanceId(bool value)
+  {
+    _appendInstanceId = value;
+    await TenantSettingsProvider.SetAppendInstanceId(value);
+    Snackbar.Add("Setting updated", Severity.Success);
   }
 
   private async Task SetNotifyUser(bool? value)

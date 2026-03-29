@@ -40,3 +40,4 @@ global using Microsoft.AspNetCore.Components;
 global using ControlR.Web.Client.Extensions;
 global using ControlR.ApiClient;
 global using ControlR.Libraries.Branding;
+global using SharedValidators = ControlR.Libraries.Shared.DataValidation.Validators;

@@ -1,4 +1,6 @@
 using ControlR.Libraries.Api.Contracts.Constants;
+using ControlR.Web.Server.Extensions;
+using ControlR.Web.Server.Services.Users;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ControlR.Web.Server.Api;
@@ -6,9 +8,10 @@ namespace ControlR.Web.Server.Api;
 [Route(HttpConstants.UserPreferencesEndpoint)]
 [ApiController]
 [Authorize]
-public class UserPreferencesController(AppDb appDb) : ControllerBase
+public class UserPreferencesController(AppDb appDb, IUserPreferencesManager userPreferencesManager) : ControllerBase
 {
   private readonly AppDb _appDb = appDb;
+  private readonly IUserPreferencesManager _userPreferencesManager = userPreferencesManager;
 
   [HttpGet]
   public async IAsyncEnumerable<UserPreferenceResponseDto> GetAll()
@@ -66,42 +69,12 @@ public class UserPreferencesController(AppDb appDb) : ControllerBase
   [HttpPost]
   public async Task<ActionResult<UserPreferenceResponseDto>> SetPreference([FromBody] UserPreferenceRequestDto preference)
   {
-    if (User.Identity is null)
+    if (!User.TryGetUserId(out var userId))
     {
       return Unauthorized();
     }
 
-    var user = await _appDb.Users
-      .Include(x => x.UserPreferences)
-      .FirstOrDefaultAsync(x => x.UserName == User.Identity.Name);
-
-    if (user is null)
-    {
-      return NotFound();
-    }
-
-    var entity = new UserPreference()
-    {
-      Name = preference.Name,
-      Value = preference.Value.Trim(),
-      UserId = user.Id,
-    };
-
-    user.UserPreferences ??= [];
-
-    var index = user.UserPreferences.FindIndex(x => x.Name == preference.Name);
-
-    if (index >= 0)
-    {
-      user.UserPreferences[index] = entity;
-    }
-    else
-    {
-      user.UserPreferences.Add(entity);
-    }
-
-    await _appDb.SaveChangesAsync();
-
-    return entity.ToDto();
+    var result = await _userPreferencesManager.SetPreference(userId, preference);
+    return result.ToActionResult();
   }
 }

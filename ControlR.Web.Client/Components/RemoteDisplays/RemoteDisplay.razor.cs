@@ -47,7 +47,7 @@ public partial class RemoteDisplay : JsInteropableComponent
   [Inject]
   public required TimeProvider TimeProvider { get; init; }
   [Inject]
-  public required IUserSettingsProvider UserPreferences { get; init; }
+  public required IUserPreferencesProvider UserPreferences { get; init; }
   [Inject]
   public required IHubConnection<IViewerHub> ViewerHub { get; init; }
 

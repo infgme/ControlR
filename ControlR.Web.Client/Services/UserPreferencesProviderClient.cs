@@ -1,21 +1,37 @@
 using System.Collections.Concurrent;
-using ControlR.Libraries.Viewer.Common.Enums;
-using ControlR.Web.Client.Constants;
+using System.Net;
+using ControlR.Libraries.Api.Contracts.Constants;
 using ControlR.Web.Client.Models;
-using ControlR.Web.Client.Services;
-using Microsoft.AspNetCore.Components.Authorization;
 
-namespace ControlR.Web.Server.Services.Users;
+namespace ControlR.Web.Client.Services;
 
-internal class UserSettingsProviderServer(
-  IDbContextFactory<AppDb> dbFactory,
-  AuthenticationStateProvider authStateProvider,
-  ILogger<UserSettingsProviderServer> logger) : IUserSettingsProvider
+public interface IUserPreferencesProvider
 {
-  private readonly AuthenticationStateProvider _authStateProvider = authStateProvider;
-  private readonly IDbContextFactory<AppDb> _dbFactory = dbFactory;
-  private readonly ILogger<UserSettingsProviderServer> _logger = logger;
+  Task<bool> GetHideOfflineDevices();
+  Task<KeyboardInputMode> GetKeyboardInputMode();
+  Task<bool> GetNotifyUserOnSessionStart();
+  Task<bool> GetOpenDeviceInNewTab();
+  Task<ThemeMode> GetThemeMode();
+  Task<string> GetUserDisplayName();
+  Task<ViewMode> GetViewMode();
+  Task SetHideOfflineDevices(bool value);
+  Task SetKeyboardInputMode(KeyboardInputMode value);
+  Task SetNotifyUserOnSessionStart(bool value);
+  Task SetOpenDeviceInNewTab(bool value);
+  Task SetThemeMode(ThemeMode value);
+  Task SetUserDisplayName(string value);
+  Task SetViewMode(ViewMode value);
+}
+
+internal class UserPreferencesProviderClient(
+  IControlrApi controlrApi,
+  ISnackbar snackbar,
+  ILogger<UserPreferencesProviderClient> logger) : IUserPreferencesProvider
+{
+  private readonly IControlrApi _controlrApi = controlrApi;
+  private readonly ILogger<UserPreferencesProviderClient> _logger = logger;
   private readonly ConcurrentDictionary<string, object?> _preferences = new();
+  private readonly ISnackbar _snackbar = snackbar;
 
   public Task<bool> GetHideOfflineDevices()
   {
@@ -97,27 +113,25 @@ internal class UserSettingsProviderServer(
         return typedValue;
       }
 
-      var authState = await _authStateProvider.GetAuthenticationStateAsync();
-      if (!authState.User.TryGetUserId(out var userId))
+      var getResult = await _controlrApi.UserPreferences.GetUserPreference(preferenceName);
+
+      if (!getResult.IsSuccess)
+      {
+        if (getResult.StatusCode == HttpStatusCode.NotFound)
+        {
+          return defaultValue;
+        }
+
+        _snackbar.Add(getResult.Reason, Severity.Error);
+        return defaultValue;
+      }
+
+      if (getResult.Value is null)
       {
         return defaultValue;
       }
 
-      var isAuthenticated = await _authStateProvider.IsAuthenticated();
-
-      if (!isAuthenticated)
-      {
-        return defaultValue;
-      }
-
-      await using var db = await _dbFactory.CreateDbContextAsync();
-
-      var preference = await db.UserPreferences
-        .AsNoTracking()
-        .Where(x => x.User!.Id == userId && x.Name == preferenceName)
-        .FirstOrDefaultAsync();
-
-      if (preference is null)
+      if (!getResult.Value.HasValueSet)
       {
         return defaultValue;
       }
@@ -126,14 +140,13 @@ internal class UserSettingsProviderServer(
 
       if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
       {
-        // Get the underlying type (e.g., bool from bool?)
         targetType = Nullable.GetUnderlyingType(targetType) ??
           throw new InvalidOperationException($"Failed to convert setting value to type {targetType.Name}.");
       }
 
       if (targetType.IsEnum)
       {
-        if (Enum.TryParse(targetType, preference.Value, true, out var enumValue))
+        if (Enum.TryParse(targetType, getResult.Value.Value, true, out var enumValue))
         {
           _preferences[preferenceName] = enumValue;
           return (T)enumValue;
@@ -142,13 +155,13 @@ internal class UserSettingsProviderServer(
         _logger.LogError(
           "Failed to parse enum preference {PreferenceName} with value {PreferenceValue} to type {TargetType}.",
           preferenceName,
-          preference.Value,
+          getResult.Value.Value,
           targetType.Name);
 
         return defaultValue;
       }
 
-      if (Convert.ChangeType(preference.Value, targetType) is not T typedResult)
+      if (Convert.ChangeType(getResult.Value.Value, targetType) is not T typedResult)
       {
         return defaultValue;
       }
@@ -159,6 +172,7 @@ internal class UserSettingsProviderServer(
     catch (Exception ex)
     {
       _logger.LogError(ex, "Error while getting preference for {PreferenceName}.", preferenceName);
+      _snackbar.Add("Error while getting preference", Severity.Error);
       return defaultValue;
     }
   }
@@ -169,59 +183,23 @@ internal class UserSettingsProviderServer(
     {
       _preferences[preferenceName] = newValue;
       var stringValue = Convert.ToString(newValue)?.Trim();
-      
-      if (string.IsNullOrEmpty(stringValue))
+      Guard.IsNotNull(stringValue);
+      var request = new UserPreferenceRequestDto(preferenceName, stringValue);
+      var setResult = await _controlrApi.UserPreferences.SetUserPreference(request);
+
+      if (!setResult.IsSuccess)
       {
-        _logger.LogWarning("Cannot set preference {PreferenceName} - value is null or empty.", preferenceName);
-        return;
+        _logger.LogError("Failed to set preference.  Reason: {Reason}, StatusCode: {StatusCode}",
+          setResult.Reason,
+          setResult.StatusCode);
+
+        _snackbar.Add(setResult.Reason, Severity.Error);
       }
-
-      var authState = await _authStateProvider.GetAuthenticationStateAsync();
-      var userName = authState.User.Identity?.Name;
-
-      if (string.IsNullOrEmpty(userName))
-      {
-        _logger.LogWarning("Cannot set preference {PreferenceName} - user is not authenticated.", preferenceName);
-        return;
-      }
-
-      await using var db = await _dbFactory.CreateDbContextAsync();
-
-      var user = await db.Users
-        .Include(x => x.UserPreferences)
-        .FirstOrDefaultAsync(x => x.UserName == userName);
-
-      if (user is null)
-      {
-        _logger.LogWarning("Cannot set preference {PreferenceName} - user not found.", preferenceName);
-        return;
-      }
-
-      user.UserPreferences ??= [];
-
-      var index = user.UserPreferences.FindIndex(x => x.Name == preferenceName);
-
-      var entity = new UserPreference
-      {
-        Name = preferenceName,
-        Value = stringValue,
-        UserId = user.Id,
-      };
-
-      if (index >= 0)
-      {
-        user.UserPreferences[index] = entity;
-      }
-      else
-      {
-        user.UserPreferences.Add(entity);
-      }
-
-      await db.SaveChangesAsync();
     }
     catch (Exception ex)
     {
       _logger.LogError(ex, "Error while setting preference for {PreferenceName}.", preferenceName);
+      _snackbar.Add("Error while setting preference", Severity.Error);
     }
   }
 }

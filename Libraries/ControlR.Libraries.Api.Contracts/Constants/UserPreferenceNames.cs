@@ -1,4 +1,4 @@
-namespace ControlR.Web.Client.Constants;
+namespace ControlR.Libraries.Api.Contracts.Constants;
 
 public static class UserPreferenceNames
 {

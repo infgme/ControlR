@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
     services.AddSingleton(TimeProvider.System);
     services.AddLazyInjection();
     services.AddScoped<IMessenger, WeakReferenceMessenger>();
+    services.AddScoped<IEffectiveUserPreferences, EffectiveUserPreferences>();
     services.AddScoped<ITenantSettingsProvider, TenantSettingsProvider>();
     services.AddScoped<ISystemEnvironment, SystemEnvironment>();
     services.AddScoped<IHubConnector, HubConnector>();
