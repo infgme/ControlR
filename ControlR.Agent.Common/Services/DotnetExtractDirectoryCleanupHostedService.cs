@@ -70,7 +70,7 @@ public class DotnetExtractDirectoryCleanupHostedService(
 
     var subdirs = _fileSystem
       .GetDirectories(agentTempDirBase)
-      .Select(x => new DirectoryInfo(x))
+      .Select(_fileSystem.GetDirectoryInfo)
       .OrderByDescending(x => x.CreationTime)
       .Skip(Math.Max(1, agentProcs))
       .ToArray();
@@ -80,7 +80,7 @@ public class DotnetExtractDirectoryCleanupHostedService(
       try
       {
         _logger.LogInformation("Deleting .NET extract subdirectory {SubDir}.", subdir.FullName);
-        subdir.Delete(true);
+        _fileSystem.DeleteDirectory(subdir.FullName, recursive: true);
       }
       catch (Exception ex)
       {

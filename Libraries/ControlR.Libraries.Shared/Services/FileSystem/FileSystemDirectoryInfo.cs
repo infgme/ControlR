@@ -3,6 +3,7 @@ namespace ControlR.Libraries.Shared.Services.FileSystem;
 public interface IFileSystemDirectory
 {
   FileAttributes Attributes { get; }
+  DateTime CreationTime { get; }
   bool Exists { get; }
   string FullName { get; }
   DateTime LastWriteTime { get; }
@@ -14,6 +15,8 @@ public interface IFileSystemDirectory
 internal sealed class FileSystemDirectoryInfo(DirectoryInfo directoryInfo) : IFileSystemDirectory
 {
   public FileAttributes Attributes => directoryInfo.Attributes;
+
+  public DateTime CreationTime => directoryInfo.CreationTime;
 
   public bool Exists => directoryInfo.Exists;
 

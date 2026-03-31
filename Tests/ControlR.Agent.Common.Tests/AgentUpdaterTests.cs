@@ -7,7 +7,6 @@ using ControlR.Libraries.Api.Contracts.Dtos.ServerApi;
 using ControlR.Libraries.Api.Contracts.Enums;
 using ControlR.Libraries.Shared.Primitives;
 using ControlR.Libraries.Shared.Services;
-using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Http;
 using ControlR.Libraries.Shared.Services.Processes;
 using ControlR.Libraries.TestingUtilities.FileSystem;
@@ -15,10 +14,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Net;
 using System.Security.Cryptography;
 
-namespace ControlR.Agent.Common.Tests.Services;
+namespace ControlR.Agent.Common.Tests;
 
 public class AgentUpdaterTests
 {

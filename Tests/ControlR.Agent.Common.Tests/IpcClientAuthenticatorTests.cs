@@ -1,7 +1,6 @@
 using ControlR.Agent.Common.Interfaces;
 using ControlR.Agent.Common.Services;
 using ControlR.Libraries.Ipc;
-using ControlR.Libraries.Api.Contracts.Constants;
 using ControlR.Libraries.Shared.Constants;
 using ControlR.Libraries.Shared.Primitives;
 using ControlR.Libraries.Shared.Services;
@@ -11,7 +10,7 @@ using Moq;
 using ControlR.Libraries.Api.Contracts.Dtos.IpcDtos;
 using ControlR.Agent.Shared.Services;
 
-namespace ControlR.Agent.Common.Tests.Services;
+namespace ControlR.Agent.Common.Tests;
 
 public class IpcClientAuthenticatorTests
 {

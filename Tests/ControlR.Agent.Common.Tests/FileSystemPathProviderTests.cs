@@ -4,12 +4,10 @@ using ControlR.Agent.Shared.Services;
 using ControlR.Libraries.Api.Contracts.Enums;
 using ControlR.Libraries.Shared.Helpers;
 using ControlR.Libraries.Shared.Services;
-using ControlR.Libraries.TestingUtilities;
 using ControlR.Libraries.TestingUtilities.FileSystem;
 using Moq;
-using Xunit;
 
-namespace ControlR.Agent.Common.Tests.Services;
+namespace ControlR.Agent.Common.Tests;
 
 public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
 {

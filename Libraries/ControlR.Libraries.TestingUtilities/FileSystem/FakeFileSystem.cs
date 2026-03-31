@@ -17,12 +17,16 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 	private readonly Lock _syncRoot = new();
 	private readonly Dictionary<string, string> _versionInfoSources = new(GetComparer(isCaseSensitive));
 
-	public void AddDirectory(string directoryPath, FileAttributes attributes = FileAttributes.Directory, DateTime? lastWriteTime = null)
+	public void AddDirectory(
+    string directoryPath, 
+    FileAttributes attributes = FileAttributes.Directory, 
+    DateTime? creationTime = null,
+    DateTime? lastWriteTime = null)
 	{
 		lock (_syncRoot)
 		{
 			var normalizedPath = NormalizePath(directoryPath);
-			EnsureDirectoryHierarchy(normalizedPath, attributes, lastWriteTime ?? DateTime.UtcNow);
+			EnsureDirectoryHierarchy(normalizedPath, attributes, creationTime ?? DateTime.UtcNow, lastWriteTime ?? DateTime.UtcNow);
 		}
 	}
 
@@ -755,13 +759,14 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 		}
 	}
 
-	private void EnsureDirectoryHierarchy(string normalizedPath, FileAttributes? attributes = null, DateTime? lastWriteTime = null)
+	private void EnsureDirectoryHierarchy(string normalizedPath, FileAttributes? attributes = null, DateTime? creationTime = null, DateTime? lastWriteTime = null)
 	{
 		var root = NormalizeRoot(normalizedPath);
 		if (!string.IsNullOrEmpty(root) && !_directories.ContainsKey(root))
 		{
 			_directories[root] = new FakeDirectoryEntry(root)
 			{
+				CreationTime = creationTime ?? DateTime.UtcNow,
 				LastWriteTime = lastWriteTime ?? DateTime.UtcNow
 			};
 		}
@@ -773,6 +778,7 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 			if (_directories.TryGetValue(normalizedPath, out var rootDirectory))
 			{
 				rootDirectory.Attributes = attributes ?? rootDirectory.Attributes;
+				rootDirectory.CreationTime = creationTime ?? rootDirectory.CreationTime;
 				rootDirectory.LastWriteTime = lastWriteTime ?? rootDirectory.LastWriteTime;
 			}
 
@@ -789,6 +795,7 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 			{
 				_directories[current] = new FakeDirectoryEntry(current)
 				{
+					CreationTime = creationTime ?? DateTime.UtcNow,
 					LastWriteTime = lastWriteTime ?? DateTime.UtcNow
 				};
 				continue;
@@ -800,6 +807,7 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 		if (_directories.TryGetValue(normalizedPath, out var existingDirectory))
 		{
 			existingDirectory.Attributes = attributes ?? existingDirectory.Attributes;
+			existingDirectory.CreationTime = creationTime ?? existingDirectory.CreationTime;
 			existingDirectory.LastWriteTime = lastWriteTime ?? existingDirectory.LastWriteTime;
 		}
 	}
@@ -1021,6 +1029,7 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
 		return new FakeFileSystemDirectoryInfo(normalizedPath)
 		{
 			Attributes = directory?.Attributes ?? FileAttributes.Directory,
+			CreationTime = directory?.CreationTime ?? DateTime.MinValue,
 			Exists = directory is not null,
 			LastWriteTime = directory?.LastWriteTime ?? DateTime.MinValue,
 			Name = GetName(normalizedPath),
@@ -1083,6 +1092,8 @@ public class FakeFileSystem(char directorySeparator = '/', bool isCaseSensitive 
   private sealed class FakeDirectoryEntry(string fullName)
 	{
 		public FileAttributes Attributes { get; set; } = FileAttributes.Directory;
+
+		public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
 		public string FullName { get; } = fullName;
 

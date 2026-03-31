@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 
-namespace ControlR.Agent.Common.Tests.Services;
+namespace ControlR.Agent.Common.Tests;
 
 [SupportedOSPlatform("windows8.0")]
 public class DesktopClientWatcherWinTests

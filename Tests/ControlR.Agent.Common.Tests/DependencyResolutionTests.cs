@@ -2,7 +2,7 @@ using ControlR.Agent.Common.Models;
 using ControlR.Agent.Common.Startup;
 using Microsoft.Extensions.Hosting;
 
-namespace ControlR.Agent.Common.Tests.Startup;
+namespace ControlR.Agent.Common.Tests;
 
 public class DependencyResolutionTests
 {

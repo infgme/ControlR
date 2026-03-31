@@ -6,6 +6,8 @@ public sealed class FakeFileSystemDirectoryInfo(string fullName) : IFileSystemDi
 {
   public FileAttributes Attributes { get; init; } = FileAttributes.Directory;
 
+  public DateTime CreationTime { get; init; } = DateTime.UtcNow;
+
   public bool Exists { get; init; } = true;
 
   public string FullName { get; init; } = fullName;
