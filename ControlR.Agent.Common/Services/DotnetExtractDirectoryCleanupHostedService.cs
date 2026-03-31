@@ -2,7 +2,7 @@ using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Hosting;
 
-namespace ControlR.Agent.Shared.Services;
+namespace ControlR.Agent.Common.Services;
 
 public class DotnetExtractDirectoryCleanupHostedService(
   IFileSystem fileSystem,
