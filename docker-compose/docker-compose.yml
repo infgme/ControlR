@@ -73,7 +73,7 @@ services:
 
       # Enables detailed error messages from Entity Framework Core when database errors occur.
       # This can be helpful for debugging but may leak sensitive information, so it is disabled by default.
-      # Enable this incurs a small performance cost.
+      # Enabling this incurs a small performance cost.
       ControlR_AppOptions__EnableDatabaseDetailedErrors: false
 
       # When enabled, bypasses KnownProxies/KnownIpNetworks checks and trusts all forwarded headers
@@ -101,7 +101,7 @@ services:
       # https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging
       ControlR_AppOptions__UseHttpLogging: false
 
-      # If enabled, detailed errors will be sent to the SignalR client when exceptions occur during hub method invocations.  
+      # If enabled, detailed errors will be sent to the SignalR client when exceptions occur during hub method invocations.
       # This can be helpful for debugging but may leak sensitive information, so it is disabled by default.
       ControlR_AppOptions__EnableSignalrDetailedErrors: false
 
