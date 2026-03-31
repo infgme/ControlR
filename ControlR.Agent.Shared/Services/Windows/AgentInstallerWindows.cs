@@ -63,8 +63,6 @@ internal class AgentInstallerWindows(
         return;
       }
 
-      TryClearDotnetExtractDir(@"C:\Windows\SystemTemp\.net\ControlR.Agent");
-
       await using var callback = new CallbackDisposableAsync(StartService);
 
       var installDir = GetInstallDirectory();

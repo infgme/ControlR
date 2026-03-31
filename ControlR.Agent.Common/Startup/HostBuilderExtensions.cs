@@ -161,6 +161,7 @@ internal static class HostApplicationBuilderExtensions
     // Add services only needed when running.
     if (startupMode == StartupMode.Run)
     {
+      services.AddHostedService<DotnetExtractDirectoryCleanupHostedService>();
       services.AddHostedService(s => s.GetRequiredService<IAgentUpdater>());
       services.AddHostedService<IpcServerWatcher>();
       services.AddHostedService<HubConnectionInitializer>();

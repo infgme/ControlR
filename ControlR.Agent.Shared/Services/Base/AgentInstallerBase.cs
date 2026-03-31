@@ -124,48 +124,6 @@ internal abstract class AgentInstallerBase(
     }
   }
 
-  /// <summary>
-  /// Attempts to clear old .NET extraction directories to free up space.
-  /// </summary>
-  /// <param name="agentTempDirBase">
-  ///   The base directory where .NET extracts files for the agent (e.g. "C:\Windows\SystemTemp\.net\ControlR.Agent").
-  /// </param>
-  protected void TryClearDotnetExtractDir(string agentTempDirBase)
-  {
-    try
-    {
-      if (!FileSystem.DirectoryExists(agentTempDirBase))
-      {
-        return;
-      }
-
-      // TODO: Remove +1 when LegacyInstallerBridge is removed.
-      var agentProcs = ProcessManager.GetProcessesByName("ControlR.Agent").Length + 1;
-
-      var subdirs = FileSystem
-        .GetDirectories(agentTempDirBase)
-        .Select(x => new DirectoryInfo(x))
-        .OrderByDescending(x => x.CreationTime)
-        .Skip(Math.Max(1, agentProcs))
-        .ToArray();
-
-      foreach (var subdir in subdirs)
-      {
-        try
-        {
-          subdir.Delete(true);
-        }
-        catch (Exception ex)
-        {
-          Logger.LogError(ex, "Failed to delete directory {SubDir}.", subdir);
-        }
-      }
-    }
-    catch (Exception ex)
-    {
-      Logger.LogError(ex, "Error while cleaning up .net extraction directory.");
-    }
-  }
 
   protected async Task UpdateAppSettings(Uri? serverUri, Guid? tenantId, Guid? deviceId)
   {

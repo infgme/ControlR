@@ -56,8 +56,6 @@ internal class AgentInstallerLinux(
         return;
       }
 
-      TryClearDotnetExtractDir("/root/.net/ControlR.Agent");
-
       var installDir = GetInstallDirectory();
 
       var serviceName = GetServiceName();
