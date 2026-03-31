@@ -91,11 +91,12 @@ public static class WebApplicationBuilderExtensions
       {
         var dbName = appOptions.InMemoryDatabaseName ?? "Controlr";
         options.UseInMemoryDatabase(dbName);
+        options.EnableDetailedErrors(appOptions.EnableDatabaseDetailedErrors);
       }, lifetime: ServiceLifetime.Transient);
     }
     else
     {
-      builder.AddPostgresDb();
+      builder.AddPostgresDb(appOptions);
     }
 
     builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -264,7 +265,7 @@ public static class WebApplicationBuilderExtensions
     builder.Services
       .AddSignalR(options =>
       {
-        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+        options.EnableDetailedErrors = appOptions.EnableSignalrDetailedErrors;
         options.MaximumReceiveMessageSize = 100_000;
         options.MaximumParallelInvocationsPerClient = 2;
       })
@@ -348,7 +349,9 @@ public static class WebApplicationBuilderExtensions
     return builder;
   }
 
-  private static void AddPostgresDb(this IHostApplicationBuilder builder)
+  private static void AddPostgresDb(
+    this IHostApplicationBuilder builder,
+    AppOptions appOptions)
   {
     // Add DB services.
     var pgUser = builder.Configuration.GetValue<string>("POSTGRES_USER");
@@ -392,11 +395,12 @@ public static class WebApplicationBuilderExtensions
     builder.Services.AddDbContextFactory<AppDb>((sp, options) =>
     {
       options.UseNpgsql(pgBuilder.ConnectionString);
+      options.EnableDetailedErrors(appOptions.EnableDatabaseDetailedErrors);
+
       var accessor = sp.GetRequiredService<IHttpContextAccessor>();
       if (accessor.HttpContext?.User is { Identity.IsAuthenticated: true } user)
       {
         options.UseUserClaims(user);
-        options.EnableDetailedErrors(builder.Environment.IsDevelopment());
       }
     }, lifetime: ServiceLifetime.Transient);
   }

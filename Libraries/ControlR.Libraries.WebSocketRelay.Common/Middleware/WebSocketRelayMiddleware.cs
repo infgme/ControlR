@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Buffers;
 using System.Net.WebSockets;
 using ControlR.Libraries.WebSocketRelay.Common.Options;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +18,6 @@ internal class WebSocketRelayMiddleware(
     IOptions<WebSocketRelayOptions> relayOptions,
     ILogger<WebSocketRelayMiddleware> logger)
 {
-  private const int BufferSize = 256 * 1024;
   private readonly TimeSpan _defaultWaitForPartnerTimeout =  TimeSpan.FromSeconds(20);
 
   public async Task InvokeAsync(HttpContext context)

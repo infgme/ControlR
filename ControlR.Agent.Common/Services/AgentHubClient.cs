@@ -840,6 +840,11 @@ internal class AgentHubClient(
 
   private Result VerifyDesktopClientInstallation()
   {
+    if (_systemEnvironment.IsDebug)
+    {
+      return Result.Ok();
+    }
+    
     var desktopExecutablePath = _fileSystemPathProvider.GetDesktopExecutablePath();
 
     if (!_fileSystem.FileExists(desktopExecutablePath))
