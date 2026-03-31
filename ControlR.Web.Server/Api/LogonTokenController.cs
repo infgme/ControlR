@@ -57,12 +57,10 @@ public class LogonTokenController : ControllerBase
       Request.ToOrigin(),
       $"/device-access?deviceId={request.DeviceId}&logonToken={logonToken.Token}");
 
-    var response = new LogonTokenResponseDto
-    {
-      Token = logonToken.Token,
-      DeviceAccessUrl = deviceAccessUrl,
-      ExpiresAt = logonToken.ExpiresAt
-    };
+    var response = new LogonTokenResponseDto(
+      DeviceAccessUrl: deviceAccessUrl,
+      ExpiresAt: logonToken.ExpiresAt,
+      Token: logonToken.Token);
 
     return Ok(response);
   }

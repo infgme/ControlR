@@ -3667,13 +3667,15 @@
           "expirationMinutes": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "default": 15
           }
         }
       },
       "LogonTokenResponseDto": {
         "required": [
           "deviceAccessUrl",
+          "expiresAt",
           "token"
         ],
         "type": "object",

@@ -16,13 +16,12 @@ services:
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
 
   postgres:
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
 
   aspire:
     ports:
       - "18889:18889"
-    environment:
-      POSTGRES_USER: null
-      POSTGRES_PASSWORD: null
-      POSTGRES_DB: null

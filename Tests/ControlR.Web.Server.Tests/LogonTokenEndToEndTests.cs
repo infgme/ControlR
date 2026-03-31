@@ -39,11 +39,7 @@ public class LogonTokenEndToEndTests(ITestOutputHelper testOutput)
     var pat = createResult.Value.PlainTextToken;
 
     // Phase 2: Create a logon token for device1 only
-    var logonTokenRequest = new LogonTokenRequestDto
-    {
-      DeviceId = deviceId1,
-      ExpirationMinutes = 15,
-    };
+    var logonTokenRequest = new LogonTokenRequestDto(deviceId1);
 
     // Add personal access token to request headers
     httpClient.DefaultRequestHeaders.Add(
@@ -100,12 +96,7 @@ public class LogonTokenEndToEndTests(ITestOutputHelper testOutput)
     var pat = createResult.Value.PlainTextToken;
 
     // Phase 2: Use the API key to request a logon token via HTTP
-    var logonTokenRequest = new LogonTokenRequestDto
-    {
-      DeviceId = deviceId,
-      ExpirationMinutes = 15,
-    };
-
+    var logonTokenRequest = new LogonTokenRequestDto(deviceId);
     // Add personal access token to request headers
     httpClient.DefaultRequestHeaders.Add(
       PersonalAccessTokenAuthenticationSchemeOptions.DefaultHeaderName,

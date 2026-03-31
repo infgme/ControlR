@@ -91,7 +91,6 @@ public partial class DeviceAccessLayout
 
       if (!RendererInfo.IsInteractive)
       {
-        // Skip further initialization during prerendering
         return;
       }
 
@@ -108,7 +107,6 @@ public partial class DeviceAccessLayout
           : string.Empty;
 
         NavManager.NavigateTo(basePath + remaining, replace: true);
-        return;
       }
 
       _canGoBack = HistoryEntryParser.Value.TryParseForDeviceAccess(NavManager.HistoryEntryState, out var historyEntry)
