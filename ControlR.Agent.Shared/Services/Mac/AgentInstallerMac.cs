@@ -5,6 +5,7 @@ using ControlR.Libraries.NativeInterop.Unix;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace ControlR.Agent.Shared.Services.Mac;
 
@@ -18,14 +19,17 @@ internal class AgentInstallerMac(
   IDeviceInfoProvider deviceDataGenerator,
   IOptionsAccessor optionsAccessor,
   IProcessManager processManager,
+  ISystemEnvironment systemEnvironment,
   IBundleExtractor bundleExtractor,
   IOptionsMonitor<AgentAppOptions> appOptions,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<AgentInstallerMac> logger)
-  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAccessor, processManager, appOptions, logger), IAgentInstaller
+  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAccessor, processManager, systemEnvironment, appOptions, logger), IAgentInstaller
 {
   private const string MacAgentInstallDirectory = "/Library/Application Support/ControlR";
   private const string MacAppBundleName = "ControlR.app";
+  private const string MacBundleStateDirectory = "/Library/Application Support/ControlR";
+  private const string MacInstallerTempDirectory = "/tmp/ControlR_Update";
 
   private static readonly SemaphoreSlim _installLock = new(1, 1);
 
@@ -103,10 +107,13 @@ internal class AgentInstallerMac(
       var agentPlistFile = (await GetLaunchDaemonFile()).Trim();
       var desktopPlistPath = GetLaunchAgentFilePath();
       var desktopPlistFile = (await GetLaunchAgentFile()).Trim();
+      var installerPlistPath = GetInstallerDaemonFilePath();
+      var installerPlistFile = (await GetInstallerDaemonFile(request)).Trim();
 
       _logger.LogInformation("Writing plist files.");
       await WriteFileIfChanged(agentPlistPath, agentPlistFile);
       await WriteFileIfChanged(desktopPlistPath, desktopPlistFile);
+      await WriteFileIfChanged(installerPlistPath, installerPlistFile);
       await UpdateAppSettings(request.ServerUri, request.TenantId, request.DeviceId);
 
       var createResult = await CreateDeviceOnServer(request.InstallerKeyId, request.InstallerKeySecret, request.TagIds);
@@ -151,10 +158,12 @@ internal class AgentInstallerMac(
 
       var serviceFilePath = GetLaunchDaemonFilePath();
       var desktopFilePath = GetLaunchAgentFilePath();
+      var installerFilePath = GetInstallerDaemonFilePath();
 
       _logger.LogInformation("Booting out services.");
       await _serviceControl.StopDesktopClientService(throwOnFailure: false);
       await _serviceControl.StopAgentService(throwOnFailure: false);
+      await StopInstallerDaemonService();
 
       if (_fileSystem.FileExists(serviceFilePath))
       {
@@ -164,6 +173,11 @@ internal class AgentInstallerMac(
       if (_fileSystem.FileExists(desktopFilePath))
       {
         _fileSystem.DeleteFile(desktopFilePath);
+      }
+
+      if (_fileSystem.FileExists(installerFilePath))
+      {
+        _fileSystem.DeleteFile(installerFilePath);
       }
 
       var appBundleInstallPath = GetInstalledAppBundlePath();
@@ -205,7 +219,7 @@ internal class AgentInstallerMac(
 
   private string GetBundleStateDirectory()
   {
-    return PathConstants.GetMacBundleStateDirectory(_instanceOptions.Value.InstanceId);
+    return GetInstanceInstallDirectory(MacBundleStateDirectory, _instanceOptions.Value.InstanceId);
   }
 
   private string GetDesktopExecutablePath()
@@ -220,9 +234,7 @@ internal class AgentInstallerMac(
 
   private string GetInstalledAgentPath()
   {
-    var installDirectory = string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId)
-      ? MacAgentInstallDirectory
-      : $"{MacAgentInstallDirectory}/{_instanceOptions.Value.InstanceId}";
+    var installDirectory = GetInstanceInstallDirectory(MacAgentInstallDirectory, _instanceOptions.Value.InstanceId);
 
     return _fileSystem.JoinPaths('/', installDirectory, AppConstants.GetAgentFileName(SystemPlatform.MacOs));
   }
@@ -230,6 +242,55 @@ internal class AgentInstallerMac(
   private string GetInstalledAppBundlePath()
   {
     return PathConstants.GetMacInstalledAppPath(_instanceOptions.Value.InstanceId);
+  }
+
+  private async Task<string> GetInstallerDaemonFile(AgentInstallRequest request)
+  {
+    var template = await _embeddedResourceAccessor.GetResourceAsString(
+      typeof(AgentInstallerMac).Assembly,
+      "InstallerDaemon.plist");
+
+    template = template
+      .Replace("{{SERVICE_NAME}}", GetInstallerDaemonServiceName())
+      .Replace("{{INSTALLER_PATH}}", GetUpdaterInstallerPath())
+      .Replace("{{SERVER_URI}}", request.ServerUri.ToString())
+      .Replace("{{TENANT_ID}}", request.TenantId.ToString());
+
+    if (string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))
+    {
+      var lines = template.Split('\n');
+      lines = [.. lines.Where(line =>
+        !line.Contains("{{INSTANCE_ID}}") &&
+        !line.Contains("<string>--instance-id</string>"))];
+
+      template = string.Join("\n", lines);
+    }
+    else
+    {
+      template = template.Replace("{{INSTANCE_ID}}", _instanceOptions.Value.InstanceId);
+    }
+
+    return template;
+  }
+
+  private string GetInstallerDaemonFilePath()
+  {
+    if (string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))
+    {
+      return "/Library/LaunchDaemons/app.controlr.agent.installer.plist";
+    }
+
+    return $"/Library/LaunchDaemons/app.controlr.agent.installer.{_instanceOptions.Value.InstanceId}.plist";
+  }
+
+  private string GetInstallerDaemonServiceName()
+  {
+    if (string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))
+    {
+      return "app.controlr.agent.installer";
+    }
+
+    return $"app.controlr.agent.installer.{_instanceOptions.Value.InstanceId}";
   }
 
   private async Task<string> GetLaunchAgentFile()
@@ -321,6 +382,19 @@ internal class AgentInstallerMac(
     return sourceAgentPath;
   }
 
+  private string GetUpdaterInstallerPath()
+  {
+    var instanceSegment = string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : _instanceOptions.Value.InstanceId;
+
+    return _fileSystem.JoinPaths(
+      '/',
+      MacInstallerTempDirectory,
+      instanceSegment,
+      AppConstants.GetInstallerFileName(SystemPlatform.MacOs));
+  }
+
   private void SetAgentPermissions(string installedAgentPath)
   {
     if (!OperatingSystem.IsMacOS())
@@ -337,6 +411,26 @@ internal class AgentInstallerMac(
       UnixFileMode.GroupExecute |
       UnixFileMode.OtherRead |
       UnixFileMode.OtherExecute);
+  }
+
+  private async Task StopInstallerDaemonService()
+  {
+    try
+    {
+      var psi = new ProcessStartInfo
+      {
+        FileName = "sudo",
+        UseShellExecute = true,
+        WorkingDirectory = "/tmp",
+        Arguments = $"launchctl bootout system/{GetInstallerDaemonServiceName()}"
+      };
+
+      await ProcessManager.StartAndWaitForExit(psi, TimeSpan.FromSeconds(10));
+    }
+    catch
+    {
+      // The installer daemon may not already be loaded.
+    }
   }
 
   private async Task WriteFileIfChanged(string filePath, string content)

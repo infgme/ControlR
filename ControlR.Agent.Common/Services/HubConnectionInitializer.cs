@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ControlR.Agent.Shared.Services;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Hosting;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 namespace ControlR.Agent.Common.Services;
 
 internal class HubConnectionInitializer(
+  TimeProvider timeProvider,
   IHubConnection<IAgentHub> hubConnection,
   IHostApplicationLifetime appLifetime,
   IOptionsAccessor optionsAccessor,
@@ -17,10 +19,14 @@ internal class HubConnectionInitializer(
   private readonly IHostApplicationLifetime _appLifetime = appLifetime;
   private readonly IHubConnection<IAgentHub> _hubConnection = hubConnection;
   private readonly ILogger<HubConnectionInitializer> _logger = logger;
+  private readonly TimeSpan _maxReconnectDelay = TimeSpan.FromSeconds(180);
+  private readonly TimeSpan _maxReconnectJitter = TimeSpan.FromSeconds(20);
   private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
+  private readonly TimeProvider _timeProvider = timeProvider;
 
   public async Task StartAsync(CancellationToken cancellationToken)
   {
+    var attempt = 1;
     while (!cancellationToken.IsCancellationRequested)
     {
       try
@@ -33,6 +39,19 @@ internal class HubConnectionInitializer(
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error while initializing hub connection.");
+      }
+
+      try
+      {
+        var delay = GetNextRetryDelay(attempt);
+        _logger.LogInformation("Waiting {delay} before next connection attempt.", delay);
+        await Task
+          .Delay(delay, _timeProvider, cancellationToken)
+          .IgnoreOperationCanceledException();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error while waiting before next connection attempt.");
       }
     }
   }
@@ -69,6 +88,14 @@ internal class HubConnectionInitializer(
 
     _logger.LogInformation("Connected to hub.");
     return true;
+  }
+
+  private TimeSpan GetNextRetryDelay(long retryCount)
+  {
+    var waitSeconds = Math.Min(Math.Pow(retryCount, 2), _maxReconnectDelay.TotalSeconds);
+    var jitterMs = RandomNumberGenerator.GetInt32(0, (int)_maxReconnectJitter.TotalMilliseconds);
+    var waitTime = TimeSpan.FromSeconds(waitSeconds) + TimeSpan.FromMilliseconds(jitterMs);
+    return waitTime;
   }
 
   private async Task HubConnection_Reconnected(string? arg)

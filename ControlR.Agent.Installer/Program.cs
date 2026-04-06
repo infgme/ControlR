@@ -292,10 +292,10 @@ static FileSystemPathProvider GetTempPathProvider(HostApplicationBuilder builder
     new OptionsMonitorWrapper<InstanceOptions>(instanceOptions));
 }
 
-static Guid[] ParseTagIds(string? deviceTags)
+static Guid[]? ParseTagIds(string? deviceTags)
 {
   return deviceTags is null
-    ? []
+    ? null
     : [.. deviceTags
       .Split(",")
       .Select(x => Guid.TryParse(x, out var tagId)
@@ -307,9 +307,9 @@ static Guid[] ParseTagIds(string? deviceTags)
 static void ValidateInstanceId(OptionResult optionResult)
 {
   var id = optionResult.GetValueOrDefault<string?>();
-  if (id is not null && !Validators.ValidateInstanceId(id, out var matchedIllegalChars))
+  var validationError = Validators.ValidateInstanceId(id);
+  if (validationError is not null)
   {
-    optionResult.AddError(
-      $"The instance ID contains one or more invalid characters: {string.Join(", ", matchedIllegalChars!)}");
+    optionResult.AddError(validationError);
   }
 }

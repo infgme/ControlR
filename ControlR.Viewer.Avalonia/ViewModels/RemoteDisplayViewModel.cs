@@ -819,14 +819,14 @@ public sealed partial class RemoteDisplayViewModel : ViewModelBase<RemoteDisplay
             break;
           }
         default:
-          Logger.LogWarning("Received unsupported DTO type: {DtoType}", message.DtoType);
-          _snackbar.Add(string.Format(Resources.RemoteControl_UnsupportedDtoType, message.DtoType), SnackbarSeverity.Warning);
+          Logger.LogWarning("Received unsupported DTO type: {DtoType}", Enum.GetName(message.DtoType));
+          _snackbar.Add(string.Format(Resources.RemoteControl_UnsupportedDtoType, Enum.GetName(message.DtoType)), SnackbarSeverity.Warning);
           break;
       }
     }
     catch (Exception ex)
     {
-      Logger.LogError(ex, "Error while handling remote control DTO. Type: {DtoType}", message.DtoType);
+      Logger.LogError(ex, "Error while handling remote control DTO. Type: {DtoType}", Enum.GetName(message.DtoType));
     }
   }
 

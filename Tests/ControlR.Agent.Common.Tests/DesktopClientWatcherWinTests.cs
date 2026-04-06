@@ -82,6 +82,34 @@ public class DesktopClientWatcherWinTests
   }
 
   [Fact]
+  public async Task RunIteration_WhenInstanceIdIsMissing_OmitsInstanceIdArgument()
+  {
+    using var mutationLock = Mock.Of<IDisposable>();
+    var launchedCommand = string.Empty;
+    IProcess? startedProcess = CreateProcess(101, 5, hasExited: false).Object;
+    var watcher = CreateWatcher(instanceId: string.Empty);
+
+    _desktopSessionProvider
+      .Setup(x => x.GetActiveDesktopClients())
+      .ReturnsAsync([]);
+    _win32Interop
+      .Setup(x => x.CreateInteractiveSystemProcess(
+        It.Is<string>(value => CaptureLaunchCommand(value, ref launchedCommand)),
+        5,
+        true,
+        out startedProcess))
+      .Returns(true);
+
+    await watcher.RunIteration(
+      [new DesktopSession { SystemSessionId = 5 }],
+      [],
+      CancellationToken.None);
+
+    Assert.DoesNotContain("--instance-id", launchedCommand, StringComparison.Ordinal);
+    Assert.Equal("\"C:\\ControlR\\DesktopClient\\ControlR.DesktopClient.exe\"", launchedCommand);
+  }
+
+  [Fact]
   public async Task RunIteration_WhenLaunchFailsImmediately_IncrementsFailureCount()
   {
     using var mutationLock = Mock.Of<IDisposable>();
@@ -114,6 +142,12 @@ public class DesktopClientWatcherWinTests
     Assert.True(tracker.IsSessionCovered(5, []));
   }
 
+  private static bool CaptureLaunchCommand(string value, ref string launchedCommand)
+  {
+    launchedCommand = value;
+    return true;
+  }
+
   private static Mock<IProcess> CreateProcess(int processId, int sessionId, bool hasExited)
   {
     return CreateProcess(processId, sessionId, () => hasExited);
@@ -128,7 +162,7 @@ public class DesktopClientWatcherWinTests
     return process;
   }
 
-  private DesktopClientWatcherWin CreateWatcher()
+  private DesktopClientWatcherWin CreateWatcher(string instanceId = "instance-1")
   {
     var launchTracker = new DesktopClientLaunchTracker(
       _timeProvider,
@@ -136,7 +170,7 @@ public class DesktopClientWatcherWinTests
 
     _environment.SetupGet(x => x.IsDebug).Returns(false);
     _environment.SetupGet(x => x.StartupDirectory).Returns("C:\\ControlR");
-    _settingsProvider.SetupGet(x => x.InstanceId).Returns("instance-1");
+    _settingsProvider.SetupGet(x => x.InstanceId).Returns(instanceId);
     _desktopClientFileVerifier
       .Setup(x => x.VerifyFile(It.IsAny<string>()))
       .Returns(Result.Ok());

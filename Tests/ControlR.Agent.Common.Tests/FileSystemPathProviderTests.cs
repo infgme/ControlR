@@ -19,13 +19,13 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   private Mock<ISystemEnvironment> _systemEnvironment = null!;
 
   [Theory]
-  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\appsettings.json")]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\default\appsettings.json")]
   [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\appsettings.json")]
   [InlineData(SystemPlatform.Windows, "controlr.test.com", false, true, @"C:\ProgramData\ControlR\Debug\controlr.test.com\appsettings.json")]
-  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/appsettings.json")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/default/appsettings.json")]
   [InlineData(SystemPlatform.Linux, "localhost", false, false, "/home/testuser/.controlr/localhost/appsettings.json")]
   [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/appsettings.json")]
-  [InlineData(SystemPlatform.MacOs, null, false, false, "/Users/testuser/.controlr/appsettings.json")]
+  [InlineData(SystemPlatform.MacOs, null, false, false, "/Users/testuser/.controlr/default/appsettings.json")]
   [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/appsettings.json")]
   [InlineData(SystemPlatform.MacOs, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/appsettings.json")]
   public void GetAgentAppSettingsPath_ReturnsCorrectPath(
@@ -43,9 +43,9 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\Logs\ControlR.Agent\LogFile.log")]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\default\Logs\ControlR.Agent\LogFile.log")]
   [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\Logs\ControlR.Agent\LogFile.log")]
-  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/logs/ControlR.Agent/LogFile.log")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/default/logs/ControlR.Agent/LogFile.log")]
   [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/var/log/controlr/controlr.test.com/ControlR.Agent/LogFile.log")]
   [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/logs/ControlR.Agent/LogFile.log")]
   public void GetAgentLogFilePath_AppendsLogFileName(
@@ -63,9 +63,9 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\Logs\ControlR.Agent")]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\default\Logs\ControlR.Agent")]
   [InlineData(SystemPlatform.Windows, "localhost", false, true, @"C:\ProgramData\ControlR\Debug\localhost\Logs\ControlR.Agent")]
-  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/logs/ControlR.Agent")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/default/logs/ControlR.Agent")]
   [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/var/log/controlr/controlr.test.com/ControlR.Agent")]
   [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/logs/ControlR.Agent")]
   public void GetAgentLogsDirectoryPath_ReturnsCorrectStructure(
@@ -83,13 +83,13 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\default\.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.Windows, "controlr.test.com", false, true, @"C:\ProgramData\ControlR\Debug\controlr.test.com\.controlr-bundle.sha256")]
-  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/default/.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.Linux, "localhost", false, false, "/home/testuser/.controlr/localhost/.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/.controlr-bundle.sha256")]
-  [InlineData(SystemPlatform.MacOs, null, false, false, "/Users/testuser/.controlr/.controlr-bundle.sha256")]
+  [InlineData(SystemPlatform.MacOs, null, false, false, "/Users/testuser/.controlr/default/.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/.controlr-bundle.sha256")]
   [InlineData(SystemPlatform.MacOs, "controlr.test.com", true, false, "/etc/controlr/controlr.test.com/.controlr-bundle.sha256")]
   public void GetBundleHashFilePath_ReturnsSettingsDirectoryPath(
@@ -131,9 +131,9 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\Logs\ControlR.Agent.Installer\LogFile.log")]
+  [InlineData(SystemPlatform.Windows, null, false, false, @"C:\ProgramData\ControlR\default\Logs\ControlR.Agent.Installer\LogFile.log")]
   [InlineData(SystemPlatform.Windows, "localhost", false, false, @"C:\ProgramData\ControlR\localhost\Logs\ControlR.Agent.Installer\LogFile.log")]
-  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/logs/ControlR.Agent.Installer/LogFile.log")]
+  [InlineData(SystemPlatform.Linux, null, false, false, "/home/testuser/.controlr/default/logs/ControlR.Agent.Installer/LogFile.log")]
   [InlineData(SystemPlatform.Linux, "controlr.test.com", true, false, "/var/log/controlr/controlr.test.com/ControlR.Agent.Installer/LogFile.log")]
   [InlineData(SystemPlatform.MacOs, "localhost", false, false, "/Users/testuser/.controlr/localhost/logs/ControlR.Agent.Installer/LogFile.log")]
   public void GetInstallerLogFilePath_AppendsLogFileName(
@@ -151,7 +151,7 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Linux, null, "/var/log/controlr/ControlR.DesktopClient")]
+  [InlineData(SystemPlatform.Linux, null, "/var/log/controlr/default/ControlR.DesktopClient")]
   [InlineData(SystemPlatform.Linux, "localhost", "/var/log/controlr/localhost/ControlR.DesktopClient")]
   [InlineData(SystemPlatform.MacOs, "controlr.test.com", "/var/log/controlr/controlr.test.com/ControlR.DesktopClient")]
   public void GetUnixDesktopClientLogsDirectoryForRoot_ReturnsCorrectStructure(
@@ -167,7 +167,7 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(SystemPlatform.Linux, "testuser", null, "/home/testuser/.controlr/logs/ControlR.DesktopClient")]
+  [InlineData(SystemPlatform.Linux, "testuser", null, "/home/testuser/.controlr/default/logs/ControlR.DesktopClient")]
   [InlineData(SystemPlatform.Linux, "alice", "localhost", "/home/alice/.controlr/localhost/logs/ControlR.DesktopClient")]
   [InlineData(SystemPlatform.MacOs, "bob", "controlr.test.com", "/Users/bob/.controlr/controlr.test.com/logs/ControlR.DesktopClient")]
   public void GetUnixDesktopClientLogsDirectory_ReturnsCorrectStructure(
@@ -204,7 +204,7 @@ public class FileSystemPathProviderTests(ITestOutputHelper testOutputHelper)
   }
 
   [Theory]
-  [InlineData(false, null, @"C:\ProgramData\ControlR\Logs\ControlR.DesktopClient")]
+  [InlineData(false, null, @"C:\ProgramData\ControlR\default\Logs\ControlR.DesktopClient")]
   [InlineData(false, "localhost", @"C:\ProgramData\ControlR\localhost\Logs\ControlR.DesktopClient")]
   [InlineData(true, "controlr.test.com", @"C:\ProgramData\ControlR\Debug\controlr.test.com\Logs\ControlR.DesktopClient")]
   public void GetWindowsDesktopClientLogsDirectory_ReturnsCorrectStructure(

@@ -26,4 +26,20 @@ public static class IDisposableExtensions
   {
     return new MaybeDisposable<T>(disposable);
   }
+
+  /// <summary>
+  /// Attempts to dispose the specified <see cref="IDisposable"/> object, suppressing any exceptions that may occur during disposal.
+  /// </summary>
+  /// <param name="disposable">The <see cref="IDisposable"/> object to dispose. Can be null.</param>
+  public static void TryDispose(this IDisposable? disposable)
+  {
+    try
+    {
+      disposable?.Dispose();
+    }
+    catch
+    {
+      // Suppress any exceptions thrown during disposal to prevent disruption of application flow.
+    }
+  }
 }

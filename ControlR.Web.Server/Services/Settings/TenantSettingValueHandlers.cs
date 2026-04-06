@@ -37,13 +37,14 @@ internal sealed class InstanceIdTenantSettingValueHandler : ITenantSettingValueH
     }
 
     var normalizedValue = value.Trim();
-    if (Validators.ValidateInstanceId(normalizedValue, out var illegalCharacters))
+    var validationError = Validators.ValidateInstanceId(normalizedValue);
+    if (validationError is null)
     {
       return HttpResult.Ok<string?>(normalizedValue);
     }
 
     return HttpResult.Fail<string?>(
       HttpResultErrorCode.ValidationFailed,
-      $"Instance ID contains one or more invalid characters: {string.Join(", ", illegalCharacters)}");
+      validationError);
   }
 }

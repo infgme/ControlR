@@ -1,5 +1,6 @@
 using ControlR.Agent.Shared.Constants;
 using ControlR.Agent.Shared.Options;
+using ControlR.Libraries.Shared.Constants;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using Microsoft.Extensions.Options;
 
@@ -160,10 +161,10 @@ public class FileSystemPathProvider(
       throw new ArgumentException("Username must be provided for non-root log directory.", nameof(username));
     }
 
-    var instanceId = _instanceOptions.CurrentValue.InstanceId;
+    var instanceId = GetEffectiveInstanceId();
     var homeRoot = _systemEnvironment.IsMacOS() ? "/Users" : "/home";
 
-    return _fileSystem.JoinPaths(GetPathSeparator(), homeRoot, username, ".controlr", instanceId ?? string.Empty, "logs", "ControlR.DesktopClient");
+    return _fileSystem.JoinPaths(GetPathSeparator(), homeRoot, username, ".controlr", instanceId, "logs", "ControlR.DesktopClient");
   }
 
   public string GetUnixDesktopClientLogsDirectoryForRoot()
@@ -173,12 +174,11 @@ public class FileSystemPathProvider(
       throw new PlatformNotSupportedException();
     }
 
-    var instanceId = _instanceOptions.CurrentValue.InstanceId;
+    var instanceId = GetEffectiveInstanceId();
     var logsDir = "/var/log/controlr";
-    if (!string.IsNullOrWhiteSpace(instanceId))
-    {
-      logsDir = _fileSystem.JoinPaths(GetPathSeparator(), logsDir, instanceId);
-    }
+
+    logsDir = _fileSystem.JoinPaths(GetPathSeparator(), logsDir, instanceId);
+
     return _fileSystem.JoinPaths(GetPathSeparator(), logsDir, "ControlR.DesktopClient");
   }
 
@@ -189,7 +189,6 @@ public class FileSystemPathProvider(
       throw new PlatformNotSupportedException();
     }
 
-    var instanceId = _instanceOptions.CurrentValue.InstanceId;
     var isDebug = _systemEnvironment.IsDebug;
 
     var logsDir = _fileSystem.JoinPaths(GetPathSeparator(),
@@ -201,10 +200,7 @@ public class FileSystemPathProvider(
       logsDir = _fileSystem.JoinPaths(GetPathSeparator(), logsDir, "Debug");
     }
 
-    if (!string.IsNullOrWhiteSpace(instanceId))
-    {
-      logsDir = _fileSystem.JoinPaths(GetPathSeparator(), logsDir, instanceId);
-    }
+    logsDir = _fileSystem.JoinPaths(GetPathSeparator(), logsDir, GetEffectiveInstanceId());
 
     return _fileSystem.JoinPaths(GetPathSeparator(), logsDir, "Logs", "ControlR.DesktopClient");
 
@@ -212,7 +208,7 @@ public class FileSystemPathProvider(
 
   private string AppendSubDirectories(string rootDir)
   {
-    var instanceId = _instanceOptions.CurrentValue.InstanceId;
+    var instanceId = GetEffectiveInstanceId();
 
     if (_systemEnvironment.IsWindows())
     {
@@ -221,10 +217,7 @@ public class FileSystemPathProvider(
         rootDir = _fileSystem.JoinPaths(GetPathSeparator(), rootDir, "Debug");
       }
 
-      if (!string.IsNullOrWhiteSpace(instanceId))
-      {
-        rootDir = _fileSystem.JoinPaths(GetPathSeparator(), rootDir, instanceId);
-      }
+      rootDir = _fileSystem.JoinPaths(GetPathSeparator(), rootDir, instanceId);
 
       _ = _fileSystem.CreateDirectory(rootDir).FullName;
       return rootDir;
@@ -233,10 +226,7 @@ public class FileSystemPathProvider(
     // ReSharper disable once InvertIf
     if (_systemEnvironment.IsLinux() || _systemEnvironment.IsMacOS())
     {
-      if (!string.IsNullOrWhiteSpace(instanceId))
-      {
-        rootDir = _fileSystem.JoinPaths(GetPathSeparator(), rootDir, instanceId);
-      }
+      rootDir = _fileSystem.JoinPaths(GetPathSeparator(), rootDir, instanceId);
 
       _ = _fileSystem.CreateDirectory(rootDir).FullName;
       return rootDir;
@@ -245,9 +235,11 @@ public class FileSystemPathProvider(
     throw new PlatformNotSupportedException();
   }
 
-  private string GetMacBundleStateDirectory()
+  private string GetEffectiveInstanceId()
   {
-    return PathConstants.GetMacBundleStateDirectory(_instanceOptions.CurrentValue.InstanceId);
+    return string.IsNullOrWhiteSpace(_instanceOptions.CurrentValue.InstanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : _instanceOptions.CurrentValue.InstanceId!;
   }
 
   private string GetMacInstalledAppPath()

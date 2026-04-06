@@ -1,4 +1,5 @@
-﻿using ControlR.Libraries.NativeInterop.Unix;
+﻿using ControlR.Libraries.Shared.Constants;
+using ControlR.Libraries.NativeInterop.Unix;
 
 namespace ControlR.DesktopClient.Mac;
 
@@ -18,11 +19,14 @@ public static class PathConstants
 
   private static string AppendInstanceId(string rootDir, string? instanceId)
   {
-    if (!string.IsNullOrWhiteSpace(instanceId))
-    {
-      rootDir = Path.Combine(rootDir, instanceId);
-    }
-    return Directory.CreateDirectory(rootDir).FullName;
+    return Path.Combine(rootDir, GetEffectiveInstanceId(instanceId));
+  }
+
+  private static string GetEffectiveInstanceId(string? instanceId)
+  {
+    return string.IsNullOrWhiteSpace(instanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : instanceId;
   }
 
 }

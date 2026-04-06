@@ -78,9 +78,7 @@
       return null;
     }
 
-    return SharedValidators.ValidateInstanceId(trimmedValue, out var illegalCharacters)
-      ? null
-      : $"Instance ID contains one or more invalid characters: {string.Join(", ", illegalCharacters)}";
+    return SharedValidators.ValidateInstanceId(trimmedValue);
   }
 
   private async Task SaveInstanceIdOnBlur(FocusEventArgs _)

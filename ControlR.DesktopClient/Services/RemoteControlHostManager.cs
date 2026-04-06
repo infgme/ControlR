@@ -3,9 +3,11 @@ using ControlR.Libraries.Api.Contracts.Dtos.IpcDtos;
 using ControlR.Libraries.Shared.Primitives;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using ControlR.Libraries.Serilog;
 using ControlR.Libraries.Shared.Services;
+using ControlR.DesktopClient.Common.Options;
 
 namespace ControlR.DesktopClient.Services;
 
@@ -25,6 +27,7 @@ public interface IRemoteControlHostManager
 public class RemoteControlHostManager : IRemoteControlHostManager
 {
   private readonly IAppLifetimeNotifier _appLifetimeNotifier;
+  private readonly IOptions<DesktopClientOptions> _desktopClientOptions;
   private readonly IRemoteControlHostBuilderFactory _hostBuilderFactory;
   private readonly ILogger<RemoteControlHostManager> _logger;
   private readonly HandlerCollection<ICollection<RemoteControlSession>> _sessionChangedHandlers;
@@ -35,11 +38,13 @@ public class RemoteControlHostManager : IRemoteControlHostManager
   public RemoteControlHostManager(
     TimeProvider timeProvider,
     IAppLifetimeNotifier appLifetimeNotifier,
+    IOptions<DesktopClientOptions> desktopClientOptions,
     IRemoteControlHostBuilderFactory hostBuilderFactory,
     ISystemEnvironment systemEnvironment,
     ILogger<RemoteControlHostManager> logger)
   {
     _appLifetimeNotifier = appLifetimeNotifier;
+    _desktopClientOptions = desktopClientOptions;
     _hostBuilderFactory = hostBuilderFactory;
     _logger = logger;
     _timeProvider = timeProvider;
@@ -77,7 +82,7 @@ public class RemoteControlHostManager : IRemoteControlHostManager
       var builder = _hostBuilderFactory.CreateHostBuilder(requestDto);
 
       builder.BootstrapSerilog(
-        logFilePath: PathConstants.GetLogsPath(requestDto.DataFolder),
+        logFilePath: PathConstants.GetLogsPath(_desktopClientOptions.Value.InstanceId),
         logRetention: TimeSpan.FromDays(7),
         config =>
         {

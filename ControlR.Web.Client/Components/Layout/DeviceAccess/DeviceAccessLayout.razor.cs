@@ -265,22 +265,32 @@ public partial class DeviceAccessLayout
   {
     try
     {
-      if (RemoteControlStream.Exists && RemoteControlStream.Value.IsConnected)
+      if (RemoteControlStream.Exists)
       {
-        RemoteControlState.Value.ConnectionClosedRegistration?.Dispose();
+        RemoteControlState.Value.ConnectionClosedRegistration?.TryDispose();
         RemoteControlState.Value.ConnectionClosedRegistration = null;
         RemoteControlState.Value.CurrentSession = null;
 
-        try 
+        if (RemoteControlStream.Value.IsConnected)
         {
-          using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-          await RemoteControlStream.Value.SendCloseStreamingSession(cts.Token);
+          try 
+          {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await RemoteControlStream.Value.SendCloseStreamingSession(cts.Token);
+          }
+          catch (Exception ex)
+          {
+            Logger.LogError(ex, "Error sending close streaming session command.");
+          }
+          try
+          {
+            await RemoteControlStream.Value.Close();
+          }
+          catch (Exception ex)
+          {
+            Logger.LogError(ex, "Error closing remote control stream.");
+          }
         }
-        catch (Exception ex)
-        {
-          Logger.LogError(ex, "Error sending close streaming session command.");
-        }
-        await RemoteControlStream.Value.Close();
         await ScreenWake.Value.SetScreenWakeLock(false);
       }
     }

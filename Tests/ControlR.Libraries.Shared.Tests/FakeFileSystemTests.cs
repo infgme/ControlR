@@ -1,5 +1,7 @@
 using System.Text;
+using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.TestingUtilities.FileSystem;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ControlR.Libraries.Shared.Tests;
 
@@ -85,6 +87,16 @@ public class FakeFileSystemTests
     var files = fileSystem.GetFiles("/logs", "agent*.log");
 
     Assert.Empty(files);
+  }
+
+  [Fact]
+  public void JoinPaths_RemovesDuplicateSeparatorsWhenSegmentsContainLeadingTrailingSeparators()
+  {
+    var fileSystem = new FileSystem(NullLogger<FileSystem>.Instance);
+
+    var path = fileSystem.JoinPaths('/', "/tmp/", "/ControlR_Update/", "installer");
+
+    Assert.Equal("/tmp/ControlR_Update/installer", path);
   }
 
   [Fact]

@@ -16,5 +16,5 @@ public sealed record AgentInstallRequest
 
   public Guid? DeviceId { get; init; }
 
-  public Guid[] TagIds { get; init; } = [];
+  public Guid[]? TagIds { get; init; }
 }

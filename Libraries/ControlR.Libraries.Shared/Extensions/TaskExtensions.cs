@@ -28,7 +28,6 @@ public static class TaskExtensions
     }
   }
 
-
   public static async void Forget(this ValueTask task, Func<Exception, ValueTask>? exceptionHandler = null)
   {
     try
@@ -49,7 +48,6 @@ public static class TaskExtensions
       catch { }
     }
   }
-
 
   public static async void Forget<T>(this Task<T> task, Func<Exception, Task>? exceptionHandler = null)
   {
@@ -91,6 +89,15 @@ public static class TaskExtensions
       }
       catch { }
     }
+  }
+
+  public static async Task IgnoreOperationCanceledException(this Task task)
+  {
+    try
+    {
+      await task;
+    }
+    catch (OperationCanceledException) { }
   }
 
 }

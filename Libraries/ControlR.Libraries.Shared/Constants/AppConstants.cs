@@ -8,6 +8,7 @@ public static class AppConstants
 {
   public const string AgentHubPath = "/hubs/agent";
   public const int DefaultHubDtoChunkSize = 100;
+  public const string DefaultInstallDirectoryName = "default";
   public const int DefaultVncPort = 5900;
   public const string ViewerHubPath = "/hubs/viewer";
   public const string WebSocketRelayPath = "/relay";
@@ -26,7 +27,6 @@ public static class AppConstants
       SystemPlatform.Linux or SystemPlatform.MacOs => "ffmpeg",
       _ => throw new PlatformNotSupportedException()
     };
-    
   public static Uri? ServerUri
   {
     get
@@ -96,6 +96,18 @@ public static class AppConstants
       RuntimeId.LinuxX64 => "/downloads/linux-x64/ControlR.Agent.Installer",
       RuntimeId.MacOsX64 => "/downloads/osx-x64/ControlR.Agent.Installer",
       RuntimeId.MacOsArm64 => "/downloads/osx-arm64/ControlR.Agent.Installer",
+      _ => throw new PlatformNotSupportedException()
+    };
+  }
+
+  public static string GetInstallerFileName(SystemPlatform platform)
+  {
+    return platform switch
+    {
+      SystemPlatform.Windows => "ControlR.Agent.Installer.exe",
+      SystemPlatform.Android => "ControlR.Agent.Installer.exe",
+      SystemPlatform.Linux => "ControlR.Agent.Installer",
+      SystemPlatform.MacOs => "ControlR.Agent.Installer",
       _ => throw new PlatformNotSupportedException()
     };
   }

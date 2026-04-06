@@ -61,6 +61,12 @@ public static class SerilogHostExtensions
           ApplySharedLoggerConfig(loggerConfig);
         },
         preserveStaticLogger: true);
+
+      var logsDir = Path.GetDirectoryName(logFilePath);
+      if (logsDir is not null)
+      {
+        _ = Directory.CreateDirectory(logsDir);
+      }
     }
     catch (Exception ex)
     {

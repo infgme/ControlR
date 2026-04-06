@@ -26,7 +26,7 @@ internal class AgentInstallerLinux(
   IOptionsMonitor<AgentAppOptions> appOptions,
   IOptions<InstanceOptions> instanceOptions,
   ILogger<AgentInstallerLinux> logger)
-  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAcccessor, processManager, appOptions, logger), IAgentInstaller
+  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAcccessor, processManager, systemEnvironment, appOptions, logger), IAgentInstaller
 {
   private static readonly SemaphoreSlim _installLock = new(1, 1);
 
@@ -252,13 +252,7 @@ internal class AgentInstallerLinux(
 
   private string GetInstallDirectory()
   {
-    var dir = "/usr/local/bin/ControlR";
-    if (string.IsNullOrWhiteSpace(instanceOptions.Value.InstanceId))
-    {
-      return dir;
-    }
-
-    return Path.Combine(dir, instanceOptions.Value.InstanceId);
+    return GetInstanceInstallDirectory("/usr/local/bin/ControlR", instanceOptions.Value.InstanceId);
   }
 
   private string GetServiceFilePath()

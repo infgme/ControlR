@@ -1,15 +1,16 @@
-﻿using ControlR.Libraries.Shared.Services;
+﻿using ControlR.Libraries.Shared.Constants;
+using ControlR.Libraries.Shared.Services;
 
 namespace ControlR.DesktopClient.Windows;
 
 public static class PathConstants
 {
-  public static string GetLogsPath(string? appDataFolder)
+  public static string GetLogsPath(string? instanceId)
   {
     var logsDir = Path.Combine(
           Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
           "ControlR");
-    logsDir = AppendSubDirectories(logsDir, appDataFolder);
+    logsDir = AppendSubDirectories(logsDir, instanceId);
     return Path.Combine(logsDir, "Logs", "ControlR.DesktopClient", "LogFile.log");
   }
 
@@ -19,11 +20,14 @@ public static class PathConstants
     {
       rootDir = Path.Combine(rootDir, "Debug");
     }
-    if (!string.IsNullOrWhiteSpace(instanceId))
-    {
-      rootDir = Path.Combine(rootDir, instanceId);
-    }
 
-    return Directory.CreateDirectory(rootDir).FullName;
+    return  Path.Combine(rootDir, GetEffectiveInstanceId(instanceId));
+  }
+
+  private static string GetEffectiveInstanceId(string? instanceId)
+  {
+    return string.IsNullOrWhiteSpace(instanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : instanceId;
   }
 }

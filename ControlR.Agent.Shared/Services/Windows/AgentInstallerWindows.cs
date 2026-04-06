@@ -30,7 +30,7 @@ internal class AgentInstallerWindows(
   IOptionsAccessor optionsAccessor,
   IOptionsMonitor<AgentAppOptions> appOptions,
   ILogger<AgentInstallerWindows> logger)
-  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAccessor, processes, appOptions, logger), IAgentInstaller
+  : AgentInstallerBase(fileSystem, bundleExtractor, fileSystemPathProvider, controlrApi, deviceDataGenerator, optionsAccessor, processes, systemEnvironment, appOptions, logger), IAgentInstaller
 {
   private static readonly SemaphoreSlim _installLock = new(1, 1);
 
@@ -67,6 +67,7 @@ internal class AgentInstallerWindows(
 
       var installDir = GetInstallDirectory();
       var targetAgentPath = GetAgentPath(installDir, _systemEnvironment.Platform);
+      var targetDesktopClientPath = Path.Combine(installDir, "DesktopClient", AppConstants.DesktopClientFileName);
 
       var stopResult = StopAgentService();
       if (!stopResult.IsSuccess)
@@ -74,7 +75,7 @@ internal class AgentInstallerWindows(
         Logger.LogError("Failed to stop existing agent service. Aborting installation.");
         return;
       }
-      stopResult = StopProcesses(targetAgentPath);
+      stopResult = StopProcesses(targetAgentPath, targetDesktopClientPath);
       if (!stopResult.IsSuccess)
       {
         Logger.LogError("Failed to stop existing agent processes. Aborting installation.");
@@ -174,8 +175,9 @@ internal class AgentInstallerWindows(
 
       var installDir = GetInstallDirectory();
       var targetAgentPath = GetAgentPath(installDir, _systemEnvironment.Platform);
+      var targetDesktopClientPath = Path.Combine(installDir, "DesktopClient", AppConstants.DesktopClientFileName);
 
-      var stopResult = StopProcesses(targetAgentPath);
+      var stopResult = StopProcesses(targetAgentPath, targetDesktopClientPath);
       if (!stopResult.IsSuccess)
       {
         return;
@@ -266,18 +268,11 @@ internal class AgentInstallerWindows(
 
   private string GetInstallDirectory()
   {
-    if (_systemEnvironment.IsDebug)
-    {
-      return Path.Combine(Path.GetTempPath(), "ControlR", "Install");
-    }
+    var rootDirectory = _systemEnvironment.IsDebug
+      ? Path.Combine(Path.GetTempPath(), "ControlR", "Install")
+      : Path.Combine(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", "Program Files", "ControlR");
 
-    var dir = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", "Program Files", "ControlR");
-    if (string.IsNullOrWhiteSpace(instanceOptions.Value.InstanceId))
-    {
-      return dir;
-    }
-
-    return Path.Combine(dir, instanceOptions.Value.InstanceId);
+    return GetInstanceInstallDirectory(rootDirectory, instanceOptions.Value.InstanceId);
   }
 
   private string GetServiceName()

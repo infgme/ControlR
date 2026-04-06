@@ -15,6 +15,8 @@ Project Board: https://github.com/users/bitbound/projects/1
 
 ## Quick Start: 
 
+You can use either environment variables or Docker Secrets to supply sensitive values.  The docker-compose files for both methods are available in the [docker-compose](./docker-compose) folder.
+
 ### Using Environment Variables
 
 ```
@@ -26,9 +28,9 @@ sudo docker compose up -d
 ### Using Docker Secrets
 
 ```
-wget https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose-secrets.yml
+wget -O docker-compose.yml https://raw.githubusercontent.com/bitbound/ControlR/main/docker-compose/docker-compose-secrets.yml
 # Create secret files and set appropriate permissions (chmod 600)
-sudo docker compose -f docker-compose-secrets.yml up -d
+sudo docker compose up -d
 ```
 
 You will need to supply sensitive values either via environment variables or Docker Secrets. Choose the method that works best for your setup and security requirements.

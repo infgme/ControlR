@@ -164,10 +164,6 @@ internal class AgentHubClient(
         return HubResult.Fail($"Process with ID {dto.TargetProcessId} is no longer running.");
       }
 
-      var dataFolder = string.IsNullOrWhiteSpace(_optionsAccessor.InstanceId)
-        ? "Default"
-        : _optionsAccessor.InstanceId;
-
       var ipcDto = new RemoteControlRequestIpcDto(
         dto.SessionId,
         dto.WebsocketUri,
@@ -176,7 +172,6 @@ internal class AgentHubClient(
         dto.DeviceId,
         dto.NotifyUserOnSessionStart,
         dto.RequireConsent,
-        dataFolder,
         dto.ViewerConnectionId,
         dto.ViewerName);
 
@@ -714,13 +709,43 @@ internal class AgentHubClient(
     try
     {
       _logger.LogInformation("Uninstall command received.  Reason: {reason}", reason);
+
+      var args = "uninstall";
+      if (!string.IsNullOrWhiteSpace(_optionsAccessor.InstanceId))
+      {
+        args += $" -i {_optionsAccessor.InstanceId}";
+      }
+
       var psi = new ProcessStartInfo
       {
         FileName = _systemEnvironment.StartupExePath,
-        Arguments = $"uninstall -i {_optionsAccessor.InstanceId}",
+        Arguments = args,
         UseShellExecute = true
       };
-      _ = _processManager.Start(psi);
+      
+      var process = _processManager.Start(psi);
+      if (process is null)
+      {
+        _logger.LogError("Failed to start uninstall process.");
+        return Task.CompletedTask;
+      }
+      _logger.LogInformation("Uninstall process started with PID {Pid}", process.Id);
+
+      Task
+        .Run(async () =>
+        {
+          try
+          {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await process.WaitForExitAsync(cts.Token);
+            _logger.LogInformation("Uninstall process exited with code {ExitCode}", process.ExitCode);
+          }
+          catch (Exception ex)
+          {
+            _logger.LogError(ex, "Error while waiting for uninstall process to exit.");
+          }
+        })
+        .Forget();
     }
     catch (Exception ex)
     {

@@ -1,9 +1,11 @@
 using ControlR.Libraries.Api.Contracts.Dtos.ServerApi;
+using ControlR.Libraries.Shared.Constants;
 using ControlR.Libraries.Shared.Services.FileSystem;
 using ControlR.Libraries.Shared.Services.Http;
 using ControlR.Libraries.Shared.Services.Processes;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace ControlR.Agent.Common.Services;
@@ -101,7 +103,8 @@ internal class AgentUpdater(
 
       _logger.LogInformation("Launching installer.");
 
-      var installCommand = BuildInstallCommand();
+      var installArguments = BuildInstallArguments();
+      var installCommand = BuildCommandString(installArguments);
       await LaunchInstaller(installerPath, installCommand, linkedCts.Token);
     }
     catch (OperationCanceledException ex)
@@ -132,6 +135,11 @@ internal class AgentUpdater(
     }
   }
 
+  private static string BuildCommandString(IEnumerable<string> arguments)
+  {
+    return string.Join(" ", arguments.Select(QuoteArgument));
+  }
+
   private static string GetInstallerFileName(string downloadPath)
   {
     if (Uri.TryCreate(downloadPath, UriKind.RelativeOrAbsolute, out var uri))
@@ -147,27 +155,63 @@ internal class AgentUpdater(
     throw new InvalidOperationException($"Installer download path '{downloadPath}' does not contain a file name.");
   }
 
+  private static string GetMacInstallerDaemonJobLabel(string? instanceId)
+  {
+    if (string.IsNullOrWhiteSpace(instanceId))
+    {
+      return "app.controlr.agent.installer";
+    }
+
+    return $"app.controlr.agent.installer.{instanceId}";
+  }
+
+  private static string GetMacInstallerDaemonPlistPath(string? instanceId)
+  {
+    return string.IsNullOrWhiteSpace(instanceId)
+      ? "/Library/LaunchDaemons/app.controlr.agent.installer.plist"
+      : $"/Library/LaunchDaemons/app.controlr.agent.installer.{instanceId}.plist";
+  }
+
+  private static ProcessStartInfo GetMacLaunchctlStartInfo(params string[] arguments)
+  {
+    var psi = new ProcessStartInfo
+    {
+      FileName = "sudo",
+      UseShellExecute = false,
+    };
+
+    foreach (var argument in arguments)
+    {
+      psi.ArgumentList.Add(argument);
+    }
+
+    return psi;
+  }
+
   private static string QuoteArgument(string value)
   {
     var escapedValue = value.Replace("\"", "\\\"");
     return $"\"{escapedValue}\"";
   }
 
-  private string BuildInstallCommand()
+  private List<string> BuildInstallArguments()
   {
     var arguments = new List<string>
     {
       "install",
-      $"--server-uri {QuoteArgument(_optionsAccessor.ServerUri.ToString())}",
-      $"--tenant-id {_optionsAccessor.GetRequiredTenantId()}"
+      "--server-uri",
+      _optionsAccessor.ServerUri.ToString(),
+      "--tenant-id",
+      _optionsAccessor.GetRequiredTenantId().ToString()
     };
 
     if (!string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId))
     {
-      arguments.Add($"--instance-id {QuoteArgument(_instanceOptions.Value.InstanceId)}");
+      arguments.Add("--instance-id");
+      arguments.Add(_instanceOptions.Value.InstanceId);
     }
 
-    return string.Join(" ", arguments);
+    return arguments;
   }
 
   private async Task<string?> DownloadInstaller(BundleMetadataDto metadata, CancellationToken cancellationToken)
@@ -178,8 +222,17 @@ internal class AgentUpdater(
 
     _ = _fileSystem.CreateDirectory(tempDirPath);
 
-    var installerFileName = GetInstallerFileName(metadata.InstallerDownloadUrl);
-    var installerPath = Path.Combine(tempDirPath, installerFileName);
+    var installerPath = _systemEnvironment.Platform == SystemPlatform.MacOs
+      ? GetMacInstallerDownloadPath()
+      : Path.Combine(tempDirPath, GetInstallerFileName(metadata.InstallerDownloadUrl));
+
+    var installerDir = Path.GetDirectoryName(installerPath);
+    if (installerDir is null)
+    {
+      _logger.LogCritical("Failed to determine installer directory from path: {InstallerPath}", installerPath);
+      return null;
+    }
+    _ = _fileSystem.CreateDirectory(installerDir);
 
     if (_fileSystem.FileExists(installerPath))
     {
@@ -224,7 +277,24 @@ internal class AgentUpdater(
     return string.IsNullOrWhiteSpace(installedHash) ? null : installedHash;
   }
 
-  private async Task LaunchInstaller(string installerPath, string installCommand, CancellationToken cancellationToken)
+  private string GetMacInstallerDownloadPath()
+  {
+    var instanceSegment = string.IsNullOrWhiteSpace(_instanceOptions.Value.InstanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : _instanceOptions.Value.InstanceId;
+
+    return _fileSystem.JoinPaths(
+      Path.DirectorySeparatorChar,
+      Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+      "ControlR_Update",
+      instanceSegment,
+      AppConstants.GetInstallerFileName(SystemPlatform.MacOs));
+  }
+
+  private async Task LaunchInstaller(
+    string installerPath,
+    string installCommand,
+    CancellationToken cancellationToken)
   {
     switch (_systemEnvironment.Platform)
     {
@@ -240,7 +310,7 @@ internal class AgentUpdater(
           .WaitForExitAsync(cancellationToken);
 
         // Use systemd-run to launch installer in a separate scope to prevent
-        // it from being killed when the agent service stops
+        // it from being killed when the agent service stops.
         var systemdRunCommand = $"--scope {installerPath} {installCommand}";
         await _processManager.StartAndWaitForExit(
           "sudo",
@@ -254,11 +324,21 @@ internal class AgentUpdater(
           .Start("sudo", $"chmod +x {installerPath}")
           .WaitForExitAsync(cancellationToken);
 
-        await _processManager.StartAndWaitForExit(
-          "/bin/zsh",
-          $"-c \"{installerPath} {installCommand} &\"",
-          true,
-          cancellationToken);
+        var launchdJobLabel = GetMacInstallerDaemonJobLabel(_instanceOptions.Value.InstanceId);
+        var plistPath = GetMacInstallerDaemonPlistPath(_instanceOptions.Value.InstanceId);
+
+        try
+        {
+          var bootoutStartInfo = GetMacLaunchctlStartInfo("launchctl", "bootout", $"system/{launchdJobLabel}");
+          await _processManager.StartAndWaitForExit(bootoutStartInfo, TimeSpan.FromSeconds(15));
+        }
+        catch
+        {
+          // The updater job may not already be loaded.
+        }
+
+        var bootstrapStartInfo = GetMacLaunchctlStartInfo("launchctl", "bootstrap", "system", plistPath);
+        await _processManager.StartAndWaitForExit(bootstrapStartInfo, TimeSpan.FromSeconds(15));
         break;
 
       default:

@@ -227,9 +227,12 @@ internal class DesktopClientWatcherWin(
       }
 
       var binaryPath = _pathProvider.GetDesktopExecutablePath();
+      var launchCommand = string.IsNullOrWhiteSpace(_optionsAccessor.InstanceId)
+        ? $"\"{binaryPath}\""
+        : $"\"{binaryPath}\" --instance-id {_optionsAccessor.InstanceId}";
 
       var result = _win32Interop.CreateInteractiveSystemProcess(
-        $"\"{binaryPath}\" --instance-id {_optionsAccessor.InstanceId}",
+        launchCommand,
         sessionId,
         true,
         out var process);

@@ -51,12 +51,11 @@ internal class TenantSettingsProvider(
       ? null
       : value.Trim();
 
-    if (!string.IsNullOrWhiteSpace(normalizedValue) &&
-        !Validators.ValidateInstanceId(normalizedValue, out var illegalCharacters))
+    var validationError = Validators.ValidateInstanceId(normalizedValue);
+    if (validationError is not null)
     {
-      var message = $"Instance ID contains one or more invalid characters: {string.Join(", ", illegalCharacters)}";
-      _logger.LogWarning("Rejected invalid instance ID. Invalid characters: {IllegalCharacters}", string.Join(", ", illegalCharacters));
-      _snackbar.Add(message, Severity.Error);
+      _logger.LogWarning("Rejected invalid instance ID. Reason: {ValidationError}", validationError);
+      _snackbar.Add(validationError, Severity.Error);
       return false;
     }
 

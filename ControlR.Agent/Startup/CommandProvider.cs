@@ -201,10 +201,10 @@ internal static class CommandProvider
   private static void ValidateInstanceId(OptionResult optionResult)
   {
     var id = optionResult.GetValueOrDefault<string?>();
-    if (id is not null && !Validators.ValidateInstanceId(id, out var matchedIllegalChars))
+    var validationError = Validators.ValidateInstanceId(id);
+    if (validationError is not null)
     {
-      optionResult.AddError(
-        $"The instance ID contains one or more invalid characters: {string.Join(", ", matchedIllegalChars!)}");
+      optionResult.AddError(validationError);
     }
   }
 

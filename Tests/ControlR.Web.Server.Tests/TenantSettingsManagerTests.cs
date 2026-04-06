@@ -7,7 +7,6 @@ using ControlR.Web.Server.Services;
 using ControlR.Web.Server.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace ControlR.Web.Server.Tests;
 
@@ -77,6 +76,22 @@ public class TenantSettingsManagerTests(ITestOutputHelper testOutput) : IAsyncLi
       .FirstOrDefaultAsync(x => x.TenantId == tenant.Id && x.Name == TenantSettingNames.InstanceId, cancellationToken);
 
     Assert.Null(storedSetting);
+  }
+
+  [Fact]
+  public async Task SetSetting_WhenInstanceIdUsesReservedDefaultValue_ReturnsValidationFailed()
+  {
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var tenant = await _testApp.Services.CreateTestTenant();
+
+    var result = await _tenantSettingsManager.SetSetting(
+      tenant.Id,
+      new TenantSettingRequestDto(TenantSettingNames.InstanceId, "DeFaUlT"),
+      cancellationToken);
+
+    Assert.False(result.IsSuccess);
+    Assert.Equal(HttpResultErrorCode.ValidationFailed, result.ErrorCode);
+    Assert.Contains("reserved", result.Reason ?? string.Empty, StringComparison.OrdinalIgnoreCase);
   }
 
   [Fact]

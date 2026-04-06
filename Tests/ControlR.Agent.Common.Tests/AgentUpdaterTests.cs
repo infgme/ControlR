@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace ControlR.Agent.Common.Tests;
@@ -22,6 +23,79 @@ public class AgentUpdaterTests
 {
   private static readonly Uri _serverUri = new("https://controlr.example/");
   private static readonly Guid _tenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+  [Fact]
+  public async Task CheckForUpdate_OnMac_BootstrapsOneShotLaunchDaemon()
+  {
+    var fixture = new AgentUpdaterFixture();
+    fixture.FileSystem.AddFile(fixture.BundleHashPath, "OLD_HASH");
+    fixture.SystemEnvironment
+      .SetupGet(x => x.Platform)
+      .Returns(SystemPlatform.MacOs);
+    fixture.SystemEnvironment
+      .SetupGet(x => x.Runtime)
+      .Returns(RuntimeId.MacOsArm64);
+
+    var installerBytes = new byte[] { 1, 2, 3, 4, 5 };
+    var installerSha256 = Convert.ToHexString(SHA256.HashData(installerBytes));
+    var downloadedInstallerPath = string.Empty;
+    var process = new Mock<IProcess>();
+    process
+      .Setup(x => x.WaitForExitAsync(It.IsAny<CancellationToken>()))
+      .Returns(Task.CompletedTask);
+
+    fixture.AgentUpdateApi
+      .Setup(x => x.GetBundleMetadata(RuntimeId.MacOsArm64, It.IsAny<CancellationToken>()))
+      .ReturnsAsync(ApiResult.Ok(new BundleMetadataDto
+      {
+        BundleDownloadUrl = "/downloads/osx-arm64/ControlR.Agent.bundle.zip",
+        BundleSha256 = "NEW_HASH",
+        InstallerDownloadUrl = "/downloads/osx-arm64/ControlR.Agent.Installer",
+        InstallerSha256 = installerSha256,
+        Runtime = RuntimeId.MacOsArm64,
+        Version = Version.Parse("1.2.3")
+      }));
+
+    fixture.DownloadsApi
+      .Setup(x => x.DownloadFile("/downloads/osx-arm64/ControlR.Agent.Installer", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+      .Returns<string, string, CancellationToken>((_, destinationPath, _) =>
+      {
+        downloadedInstallerPath = destinationPath;
+        fixture.FileSystem.AddFile(destinationPath, installerBytes);
+        return Task.FromResult(Result.Ok());
+      });
+
+    fixture.ProcessManager
+      .Setup(x => x.Start("sudo", It.IsAny<string>()))
+      .Returns(process.Object);
+
+    var launchctlStartInfos = new List<ProcessStartInfo>();
+    fixture.ProcessManager
+      .Setup(x => x.StartAndWaitForExit(It.IsAny<ProcessStartInfo>(), It.IsAny<TimeSpan>()))
+      .Returns<ProcessStartInfo, TimeSpan>((startInfo, _) =>
+      {
+        launchctlStartInfos.Add(startInfo);
+        return Task.FromResult(0);
+      });
+
+    var updater = fixture.CreateUpdater();
+
+    await updater.CheckForUpdate(force: true, cancellationToken: TestContext.Current.CancellationToken);
+
+    fixture.ProcessManager.Verify(
+      x => x.Start("sudo", It.Is<string>(args => args.Contains("chmod +x", StringComparison.Ordinal))),
+      Times.Once);
+    Assert.Equal(2, launchctlStartInfos.Count);
+    Assert.Equal("sudo", launchctlStartInfos[0].FileName);
+    Assert.Equal("launchctl bootout system/app.controlr.agent.installer.instance-1", string.Join(" ", launchctlStartInfos[0].ArgumentList));
+    Assert.Equal("sudo", launchctlStartInfos[1].FileName);
+    var expectedInstallerPath = Path.Combine(Path.GetTempPath(), "ControlR_Update", "instance-1", "ControlR.Agent.Installer");
+    Assert.Equal(expectedInstallerPath, downloadedInstallerPath);
+    var expectedPlistPath = "/Library/LaunchDaemons/app.controlr.agent.installer.instance-1.plist";
+    Assert.Equal(
+      $"launchctl bootstrap system {expectedPlistPath}",
+      string.Join(" ", launchctlStartInfos[1].ArgumentList));
+  }
 
   [Fact]
   public async Task CheckForUpdate_WhenInstalledBundleHashDiffers_DownloadsAndLaunchesInstaller()
@@ -80,9 +154,12 @@ public class AgentUpdaterTests
     Assert.EndsWith("ControlR.Agent.Installer.exe", downloadedInstallerPath, StringComparison.OrdinalIgnoreCase);
     Assert.Equal(downloadedInstallerPath, launchedInstallerPath);
     Assert.Contains("install", launchedInstallerArguments, StringComparison.Ordinal);
-    Assert.Contains("--server-uri \"https://controlr.example/\"", launchedInstallerArguments, StringComparison.Ordinal);
-    Assert.Contains($"--tenant-id {_tenantId}", launchedInstallerArguments, StringComparison.Ordinal);
-    Assert.Contains("--instance-id \"instance-1\"", launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains("--server-uri", launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains("\"https://controlr.example/\"", launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains("--tenant-id", launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains(_tenantId.ToString(), launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains("--instance-id", launchedInstallerArguments, StringComparison.Ordinal);
+    Assert.Contains("\"instance-1\"", launchedInstallerArguments, StringComparison.Ordinal);
     fixture.AgentUpdateApi.Verify(
       x => x.GetCurrentAgentHashSha256(It.IsAny<RuntimeId>(), It.IsAny<CancellationToken>()),
       Times.Never);

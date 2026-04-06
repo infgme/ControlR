@@ -14,6 +14,7 @@ internal abstract class AgentInstallerBase(
   IDeviceInfoProvider deviceDataGenerator,
   IOptionsAccessor optionsAccessor,
   IProcessManager processManager,
+  ISystemEnvironment systemEnvironment,
   IOptionsMonitor<AgentAppOptions> appOptions,
   ILogger<AgentInstallerBase> logger)
 {
@@ -21,6 +22,7 @@ internal abstract class AgentInstallerBase(
   private readonly IDeviceInfoProvider _deviceDataGenerator = deviceDataGenerator;
   private readonly IFileSystemPathProvider _fileSystemPathProvider = fileSystemPathProvider;
   private readonly IOptionsAccessor _optionsAccessor = optionsAccessor;
+  private readonly ISystemEnvironment _systemEnvironment = systemEnvironment;
 
   protected IOptionsMonitor<AgentAppOptions> AppOptions { get; } = appOptions;
   protected IFileSystem FileSystem { get; } = fileSystem;
@@ -30,6 +32,15 @@ internal abstract class AgentInstallerBase(
   protected static string GetAgentPath(string installDirectory, SystemPlatform platform)
   {
     return Path.Combine(installDirectory, AppConstants.GetAgentFileName(platform));
+  }
+
+  protected static string GetInstanceInstallDirectory(string rootDirectory, string? instanceId)
+  {
+    var installDirectoryName = string.IsNullOrWhiteSpace(instanceId)
+      ? AppConstants.DefaultInstallDirectoryName
+      : instanceId;
+
+    return Path.Combine(rootDirectory, installDirectoryName);
   }
 
   protected async Task<Result> CreateDeviceOnServer(Guid? installerKeyId, string? installerKeySecret, Guid[]? tagIds)
@@ -44,12 +55,18 @@ internal abstract class AgentInstallerBase(
       return Result.Fail("Installer key secret is required when installer key ID is provided.");
     }
 
-    tagIds ??= [];
-
     var deviceDto = await _deviceDataGenerator.GetDeviceInfo();
     var createRequest = new CreateDeviceRequestDto(deviceDto, installerKeyId.Value, installerKeySecret, tagIds);
 
-    Logger.LogInformation("Requesting device creation on the server with tags {TagIds}.", string.Join(", ", tagIds));
+    if (tagIds is null)
+    {
+      Logger.LogInformation("Requesting device creation on the server with no tags.");
+    }
+    else
+    {
+      Logger.LogInformation("Requesting device creation on the server with tags {TagIds}.", string.Join(", ", tagIds));
+    }
+
     var createResult = await _controlrApi.Devices.CreateDevice(createRequest);
     if (createResult.IsSuccess)
     {
@@ -81,13 +98,19 @@ internal abstract class AgentInstallerBase(
     return bundleExtractor.ExtractBundle(bundleZipPath, installDirectory, cancellationToken);
   }
 
-  protected Result StopProcesses(string targetAgentPath)
+  protected Result StopProcesses(string targetAgentPath, string? targetDesktopClientPath = null)
   {
     try
     {
+      var comparison = _systemEnvironment.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
       var procs = ProcessManager
         .GetProcessesByName("ControlR.Agent")
-        .Where(x => x.Id != Environment.ProcessId && x.FilePath == targetAgentPath);
+        .Where(x =>
+          x.Id != _systemEnvironment.ProcessId &&
+          string.Equals(x.FilePath, targetAgentPath, comparison));
 
       foreach (var proc in procs)
       {
@@ -101,7 +124,11 @@ internal abstract class AgentInstallerBase(
         }
       }
 
-      procs = ProcessManager.GetProcessesByName("ControlR.DesktopClient");
+      procs = ProcessManager
+        .GetProcessesByName("ControlR.DesktopClient")
+        .Where(x =>
+          targetDesktopClientPath is not null &&
+          string.Equals(x.FilePath, targetDesktopClientPath, comparison));
 
       foreach (var proc in procs)
       {

@@ -177,18 +177,27 @@ public class FileSystem(ILogger<FileSystem> logger) : IFileSystem
         continue;
       }
 
-      if (builder.Length == 0)
+      if (i == 0)
       {
-        builder.Append(path);
+        // Preserve absolute root indicator for first segment, but remove trailing separators.
+        var cleaned = path.TrimEnd(separator);
+        builder.Append(cleaned);
         continue;
       }
 
-      if (builder[^1] != separator && path[0] != separator)
+      // Remove separators around each intermediate segment to avoid duplicates.
+      var trimmed = path.Trim(separator);
+      if (trimmed.Length == 0)
+      {
+        continue;
+      }
+
+      if (builder.Length > 0 && builder[^1] != separator)
       {
         builder.Append(separator);
       }
 
-      builder.Append(path);
+      builder.Append(trimmed);
     }
 
     return builder.ToString();

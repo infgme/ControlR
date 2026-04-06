@@ -11,7 +11,7 @@ internal sealed class IdentityEmailSender(IEmailSender emailSender) : IEmailSend
     return _emailSender.SendEmailAsync(
       email,
       "ControlR Account Confirmation",
-      $"Please confirm your ControlR account by <a href='{confirmationLink}'>clicking here</a>.");
+      $"Please confirm your ControlR account by following this link: <a href='{confirmationLink}'>{confirmationLink}</a>.");
   }
 
   public Task SendPasswordResetCodeAsync(AppUser user, string email, string resetCode)
@@ -27,6 +27,6 @@ internal sealed class IdentityEmailSender(IEmailSender emailSender) : IEmailSend
     return _emailSender.SendEmailAsync(
       email,
       "ControlR Password Reset",
-      $"Please reset your ControlR password by <a href='{resetLink}'>clicking here</a>.");
+      $"Please reset your ControlR password by following this link: <a href='{resetLink}'>{resetLink}</a>.");
   }
 }

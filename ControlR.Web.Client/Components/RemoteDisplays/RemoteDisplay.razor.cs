@@ -531,14 +531,14 @@ public partial class RemoteDisplay : JsInteropableComponent
             break;
           }
         default:
-          Logger.LogWarning("Received unsupported DTO type: {DtoType}", wrapper.DtoType);
-          Snackbar.Add($"Unsupported DTO type: {wrapper.DtoType}", Severity.Warning);
+          Logger.LogWarning("Received unsupported DTO type: {DtoType}", Enum.GetName(wrapper.DtoType));
+          Snackbar.Add($"Unsupported DTO type: {Enum.GetName(wrapper.DtoType)}", Severity.Warning);
           break;
       }
     }
     catch (Exception ex)
     {
-      Logger.LogError(ex, "Error while handling remote control DTO. Type: {DtoType}", wrapper.DtoType);
+      Logger.LogError(ex, "Error while handling remote control DTO. Type: {DtoType}", Enum.GetName(wrapper.DtoType));
     }
   }
 
